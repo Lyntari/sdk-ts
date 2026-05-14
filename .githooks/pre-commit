@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — auto-regenerate openapi.yaml when schemas change.
+#
+# Activated automatically on `npm install` via the `prepare` script in
+# package.json, which runs `git config core.hooksPath .githooks`.
+#
+# Rationale: the canonical spec is generated from the Zod schemas at
+# `src/schemas/*`. Every schema change must land alongside a regenerated
+# `openapi.yaml`; the CI `openapi-drift.yml` workflow enforces this.
+# This hook is the local-side fast-path — it regenerates + stages the spec
+# in the same commit, so the CI gate becomes a safety net rather than a
+# resubmit gate. The CI gate stays in place because (a) some contributors
+# may not have run `npm install`, (b) GitHub web-UI edits bypass the hook,
+# (c) forced commits can skip hooks.
+#
+# Skip: prepend `git commit --no-verify` if you need to bypass for a
+# justifiable reason. The CI drift check will still fire.
+
+set -euo pipefail
+
+# Schema-affecting paths. If none of the staged files match, skip the
+# generator entirely — the hook should be invisible for unrelated commits.
+if ! git diff --cached --name-only --diff-filter=ACMR | \
+     grep -qE '^(src/schemas/|src/build/generate-openapi\.ts$)'; then
+  exit 0
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "pre-commit: 'npm' not found; cannot regenerate openapi.yaml." >&2
+  echo "pre-commit: install Node + npm, then run 'npm install' to set up the project." >&2
+  exit 1
+fi
+
+echo "pre-commit: schemas changed → regenerating openapi.yaml..." >&2
+npm run --silent generate:openapi
+
+# Stage the regenerated spec into the same commit. No-op when the schema
+# change was non-spec-affecting (e.g., a comment or a type alias).
+git add openapi.yaml
+
+exit 0

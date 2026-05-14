@@ -1,0 +1,66 @@
+name: OpenAPI drift
+
+# Drift gate: regenerates openapi.yaml from canonical Zod schemas and
+# fails if the result differs from the committed file. Forces every schema
+# change to land alongside the regenerated spec — the public OpenAPI
+# contract cannot drift away from the source-of-truth schemas.
+#
+# Runs on every push and PR that may touch the schemas, the spec generator,
+# or the spec itself. The diff is the load-bearing assertion; the workflow
+# is otherwise a no-op.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'src/schemas/**'
+      - 'src/build/generate-openapi.ts'
+      - 'openapi.yaml'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'src/schemas/**'
+      - 'src/build/generate-openapi.ts'
+      - 'openapi.yaml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate openapi.yaml
+        run: npm run generate:openapi
+
+      - name: Fail on drift
+        run: |
+          if ! git diff --exit-code openapi.yaml; then
+            echo ""
+            echo "::error::openapi.yaml is out of date — schemas changed without regenerating the spec."
+            echo ""
+            echo "To fix on the current branch:"
+            echo "  npm run generate:openapi"
+            echo "  git add openapi.yaml"
+            echo "  git commit --amend --no-edit   # or 'git commit -m \"regen openapi.yaml\"' for a separate commit"
+            echo "  git push --force-with-lease    # required only if you used --amend"
+            echo ""
+            echo "Tip: the .githooks/pre-commit hook auto-regenerates this file when staged"
+            echo "changes touch src/schemas/ or src/build/generate-openapi.ts. If you ran"
+            echo "'npm install' it should be active — confirm with 'git config core.hooksPath'."
+            echo ""
+            exit 1
+          fi

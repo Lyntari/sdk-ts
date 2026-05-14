@@ -1,0 +1,45 @@
+# Changelog
+
+All notable changes to `@lyntari/sdk` are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## v0.1.0 - Unreleased
+
+Initial release.
+
+### Auth
+
+- `createLyntariClient` factory with two modes: **caller-managed** (`client.setAccessToken` / `getAccessToken`) and **managed-lifecycle** (opt in via `auth: { storage, onEvent? }`).
+- Managed-lifecycle owns cold-start restore, persistence, pre-expiry auto-refresh scheduling, and a discriminated `AuthEvent` surface (`tokenRefreshed` / `authExpired` / `authError` / `cleared`) classifying refresh failures via the server's `terminal_for_auth` flag.
+- Pluggable `TokenStorage` interface plus two built-in adapters: `InMemoryStorage` (Map-backed) and `CapacitorPreferencesStorage` (dependency-injected; the SDK has no direct dep on `@capacitor/preferences`).
+- Auth methods: `login`, `signup`, `refresh`, `logout`, `resetPassword`, `deleteAccount`.
+- Signup + password-reset enforce password rules: minimum 8 characters and rejection of a top-25 common-password blocklist (case-insensitive). Login does not apply the rules so existing accounts can still authenticate to rotate.
+
+### Push notifications
+
+- `PushSubscriptions` module (`client.pushSubscriptions`) wires the OneSignal subscription save lifecycle end-to-end. Mounted only in managed-lifecycle mode.
+- `client.pushSubscriptions.initialize({appId, getPlatform, onesignal?, onForegroundNotification?, onNotificationOpened?})` — one-call OneSignal setup: namespace resolution, plugin init, foreground + opened event listeners, and the subscription save lifecycle.
+- Lower-level `client.pushSubscriptions.start(...)` for hosts that manage OneSignal init separately.
+- OneSignal is referenced structurally via `OneSignalLike` — zero direct dependency on `onesignal-cordova-plugin` or `@capacitor/core`.
+
+### iBeacon
+
+- `parseIBeaconData(scanResult)` decodes Apple's iBeacon manufacturer-data byte layout from raw BLE scan callbacks. Returns `{uuid, major, minor, rssi, proximity, accuracy}` or `null` on missing/short/wrong-prefix frames.
+- `cleanupStaleBeacons(map, staleMs)` — generic in-place eviction helper over `Map<string, { lastSeen: number }>`.
+- Both helpers are platform-agnostic and have no Capacitor/BLE-plugin dependency.
+
+### API surface
+
+- Typed method wrappers grouped by domain: `auth` (6), `visits` (4), `location` (4), `notifications` (8), `reads` (8) — 30 methods total covering every client-callable endpoint.
+- Tightened response schemas with typed row exports: `WaitboardRow`, `CategoryRow`, `VisitHistoryRow`, `NotificationHistoryRow`.
+
+### Transport
+
+- Web Crypto HMAC-SHA256 signer with byte-for-byte parity against the server's canonical signing.
+- `postWithHMAC` primitive with three single-shot retry behaviors: `bad_signature` (clock-skew self-heal), `visit_race_conflict` (with `retry_safe: true`), and `expired_jwt` (when the Auth lifecycle is wired).
+- `getWithApiKey` for header-API-key GET endpoints; `postWithApiKey` for body-API-key POST endpoints.
+- Typed error hierarchy (`LyntariApiError` and subclasses) mirroring the server's error envelope. `LyntariApiError.userMessage` carries the unwrapped server message for UI surfaces; `LyntariApiError.message` keeps the wrapped `[code] msg (request_id: id)` debug format.
+
+### Schemas + OpenAPI
+
+- Zod schemas for every client-callable endpoint exported under `@lyntari/sdk/types`, consumed by the SDK methods and by the OpenAPI generator.
+- OpenAPI 3.1 spec generated from the same schemas and shipped at the root of the package (`openapi.yaml`).

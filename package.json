@@ -1,0 +1,74 @@
+{
+  "name": "@lyntari/sdk",
+  "version": "0.1.0",
+  "description": "Official Lyntari API SDK — typed methods, runtime validation, HMAC-signed transport.",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./openapi.yaml": "./openapi.yaml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "openapi.yaml",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "generate:openapi": "tsx src/build/generate-openapi.ts",
+    "generate:test-vectors": "node scripts/generate-test-vectors.mjs",
+    "test:integration:dev": "tsx scripts/test-integration-dev.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
+    "@redocly/cli": "^2.30.4",
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.9.0",
+    "tsup": "^8.2.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "yaml": "^2.8.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lyntari/sdk-ts.git"
+  },
+  "keywords": [
+    "lyntari",
+    "sdk",
+    "api",
+    "stadium",
+    "wait-time"
+  ],
+  "author": "Lyntari, Inc."
+}
