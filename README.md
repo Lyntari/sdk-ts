@@ -99,6 +99,85 @@ Behavior:
 
 Call `client.pushSubscriptions.stop?.()` to detach listeners.
 
+## In-stadium tracker
+
+`client.location.createTracker(...)` is a stateful polling module that detects
+when the authenticated user is inside a stadium polygon and keeps the server
+informed. Mounted on `client.location` in both client modes — does not depend
+on the managed-lifecycle Auth surface — but in practice callers want the
+tracker to run for the lifetime of an authenticated session, so most
+consumers create it after login and `stop()` it on logout.
+
+```ts
+import { Geolocation } from '@capacitor/geolocation';
+
+const tracker = client.location.createTracker({
+  getCurrentPosition: async () => {
+    const pos = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: false,
+      maximumAge: 30_000,
+      timeout: 30_000,
+    });
+    return {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+  },
+  onStateChange: (state) => {
+    // state: { inStadium, currentStadiumId, nearbyVenues, coordinates }
+    setUserLocation(state);  // wire into your UI / app state
+  },
+  onError: (err) => logger.error('tracker error', err),
+  // pollIntervalMs: 30_000,  // optional; default 30s
+});
+
+tracker.start();
+// Later, e.g. on logout or app teardown:
+tracker.stop();
+```
+
+Each tick:
+
+1. The SDK calls your `getCurrentPosition` for fresh coords.
+2. It calls `client.location.nearbyVenues({latitude, longitude})`.
+3. Extracts `currentStadiumId = result[0]?.current_stadium_id ?? null` and
+   emits `onStateChange({inStadium, currentStadiumId, nearbyVenues, coordinates})`.
+4. If `inStadium === true`, POSTs `client.location.update({latitude, longitude,
+   accuracy, timestamp_ms})` so the server-side proximity-notification cron's
+   spatial gate sees a fresh `app.user_locations` row.
+
+Behavior:
+
+- **Polling-only.** The 30s `setInterval` drives the cadence; the tracker
+  does not consume OS movement events. This is deliberate — on iOS in
+  low-accuracy mode, `Geolocation.watchPosition` can stay silent for
+  minutes on a stationary device, missing server-state transitions like
+  a stadium-geofence row added after the user has already arrived. Polling
+  guarantees that any transition is observed within `pollIntervalMs`.
+- **`start()` fires an immediate tick** before the first interval. Don't
+  wait 30s on app launch to get initial state.
+- **`stop()` clears the interval** and suppresses late callbacks from any
+  in-flight tick. Safe to call on consumer unmount.
+- **`forceTick()` runs a tick outside the cadence.** Returns the in-flight
+  promise if a tick is already running (no double-fire). Use for
+  app-resume, permission-granted, pull-to-refresh, manual debug.
+- **In-flight de-dupe.** Overlapping `setInterval` fires + `forceTick()`
+  calls all await the same shared promise — `nearby-venues` is never called
+  concurrently for the same tracker.
+- **Errors route to `onError(err)`.** The loop keeps polling on transient
+  failures (network blips, GPS timeouts). To terminate on terminal-auth
+  errors, inspect `err` in `onError` and call `tracker.stop()`:
+  `if (err instanceof LyntariApiError && err.terminalForAuth) tracker.stop();`.
+- **`onStateChange` fires every successful tick** with no SDK-side de-dupe.
+  Coordinates change every tick so any de-dupe degenerates to identity;
+  React-style consumers using setState get implicit referential-equality
+  filtering for free.
+- **`isRunning()`** reflects whether `start()` has been called and `stop()`
+  has not. Idempotent — second `start()` is a no-op.
+
+Deep-dive in [`docs/location-tracker.md`](./docs/location-tracker.md).
+
 ## Transport retry behaviors
 
 `postWithHMAC` retries up to once per category, max one of each per call:
@@ -115,6 +194,7 @@ See `src/index.ts` for the full client surface and [`openapi.yaml`](./openapi.ya
 
 End-to-end workflow guides live in [`docs/`](./docs/):
 
+- **[location-tracker.md](./docs/location-tracker.md)** — in-stadium presence polling, the `current_stadium_id` wire contract, and how the tracker plays with `nearby-venues` + `location-update`.
 - **[push-integration.md](./docs/push-integration.md)** — push notification subscription lifecycle, trigger contract, server-composed copy, and the `notification-event` analytics surface.
 - **[ibeacon-integration.md](./docs/ibeacon-integration.md)** — opt-in BLE iBeacon detection flow.
 

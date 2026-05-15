@@ -2,6 +2,20 @@
 
 All notable changes to `@lyntari/sdk` are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.2 - Unreleased
+
+### Added
+
+- `client.location.createTracker(options)` — new stateful tracker module that polls `nearby-venues` on a configurable interval (default 30s), derives server-side stadium presence from the `current_stadium_id` row field (added in v0.2.1), and POSTs `location-update` when in a stadium so the server-side notification cron's spatial gate (`app.user_locations` recency check) sees a fresh row. Exposes `start()`, `stop()`, `forceTick()`, `isRunning()`. Consumers supply a platform-specific `getCurrentPosition()` and receive state via `onStateChange(state)` callbacks; errors route to an optional `onError(err)`.
+
+  Extracted from the mobile-side `LocationContext.tsx` polling/eager-flip loop so multiple clients can consume the same in-stadium algorithm without duplicating it. The mobile-side refactor to consume the tracker lands in `mobile/` separately; the SDK side ships first because `mobile`'s CodeMagic build clones `sdk-ts/main`.
+
+  Polling-only model (no `watchPosition` integration): the 30s `setInterval` runs the check independently of OS movement events, which fixes the stationary-iPhone-doesn't-tick edge case that required app-restart to see server-state transitions. The in-flight de-dupe collapses overlapping `setInterval` + `forceTick()` calls so the EF round-trip rate stays bounded.
+
+### Re-exports
+
+- `LocationTracker`, `LocationTrackerCoordinates`, `LocationTrackerOptions`, `LocationTrackerState` from `@lyntari/sdk`.
+
 ## v0.2.1 - Unreleased
 
 ### Schemas

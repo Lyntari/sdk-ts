@@ -292,3 +292,11 @@ export type {
 // iBeacon parsing helpers (BLE scan-result decoder + stale-entry eviction)
 export { parseIBeaconData, cleanupStaleBeacons } from './ibeacon/index.js';
 export type { IBeaconParsed, IBeaconScanResult } from './ibeacon/index.js';
+
+// Location tracker — polling-loop module exposed via client.location.createTracker
+export type {
+  LocationTracker,
+  LocationTrackerCoordinates,
+  LocationTrackerOptions,
+  LocationTrackerState,
+} from './methods/location-tracker.js';
