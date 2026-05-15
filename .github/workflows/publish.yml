@@ -85,13 +85,11 @@ jobs:
       # has advanced past the tag, the push fails non-fast-forward — we
       # log a warning rather than failing the workflow because the npm
       # publish already succeeded; the maintainer can stamp manually.
-      - name: Commit dated CHANGELOG back to main
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           VERSION="${GITHUB_REF#refs/tags/v}"
-          git add CHANGELOG.md
-          git commit -m "chore: stamp release date for v${VERSION}"
-          if ! git push origin HEAD:main; then
-            echo "::warning::Could not fast-forward main with the dated CHANGELOG (main may have advanced past the tag). Stamp manually."
-          fi
+          gh release create "v${VERSION}" \
+          --title "v${VERSION}" \
+          --generate-notes
