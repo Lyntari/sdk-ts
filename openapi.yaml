@@ -485,7 +485,10 @@ components:
       type: array
       items:
         type: object
-        additionalProperties: {}
+        properties:
+          current_stadium_id:
+            type: string
+            format: uuid
     LocationUpdateResponse:
       type: object
       properties:
