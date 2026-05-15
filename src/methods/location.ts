@@ -25,6 +25,11 @@ import { getWithApiKey } from '../transport/get.js';
 import { postWithHMAC } from '../transport/post.js';
 import type { ClientConfig, ClientState } from './_shared.js';
 import { jwtCallOpts } from './_shared.js';
+import {
+  createLocationTrackerImpl,
+  type LocationTracker,
+  type LocationTrackerOptions,
+} from './location-tracker.js';
 
 export interface LocationMethods {
   /**
@@ -54,13 +59,34 @@ export interface LocationMethods {
    * to the client's API key. No body, no query params.
    */
   beaconConfig(): Promise<BeaconConfigResponse>;
+
+  /**
+   * Create a stateful in-stadium tracker. Polls `nearby-venues` on a
+   * configurable interval, derives stadium presence from the server's
+   * `current_stadium_id` row field, emits state via `onStateChange`, and
+   * POSTs `location-update` when the user is in a stadium (which unblocks
+   * the server-side notification cron's spatial gate).
+   *
+   * See `LocationTrackerOptions` for the option set and `LocationTracker`
+   * for the returned lifecycle surface (`start`, `stop`, `forceTick`,
+   * `isRunning`).
+   *
+   * Each `createTracker(...)` call returns an independent instance; nothing
+   * is shared across calls. Multiple trackers per client are supported (rare
+   * in practice — most consumers want a single tracker bound to the
+   * authenticated user).
+   */
+  createTracker(options: LocationTrackerOptions): LocationTracker;
 }
 
 export function createLocationMethods(
   config: ClientConfig,
   state: ClientState,
 ): LocationMethods {
-  return {
+  // Declared upfront so the `createTracker` arrow below can close over the
+  // self-reference. By the time the consumer calls `createTracker(...)`, the
+  // object literal has finished initializing and `methods` is fully populated.
+  const methods: LocationMethods = {
     nearbyVenues: async (input) =>
       postWithHMAC<NearbyVenuesResponse>({
         baseUrl: config.baseUrl,
@@ -100,5 +126,9 @@ export function createLocationMethods(
         slug: 'beacon-config',
         apiKey: config.apiKey,
       }),
+
+    createTracker: (options) => createLocationTrackerImpl(methods, options),
   };
+
+  return methods;
 }
