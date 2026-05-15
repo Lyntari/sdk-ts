@@ -2,6 +2,14 @@
 
 All notable changes to `@lyntari/sdk` are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.1 - Unreleased
+
+### Schemas
+
+- `NearbyVenuesResponseSchema` (the `client.location.nearbyVenues` response) gains an optional typed `current_stadium_id: UuidSchema.optional()` on each row. The server now projects the result of its existing `ST_Contains` polygon check against the caller's `(latitude, longitude)` onto every returned row. Three-state semantic: `[]` → not inside any stadium; non-empty array → every row carries the same `current_stadium_id`. Additive on the wire (old callers reading `Venue[]` continue to work unmodified) — the typed field is the only new addition.
+
+  Plumbing for the mobile bug fix where a fresh signup ahead of `TESTING_SEED`'d stadium geofences left `LocationContext` stuck in `inStadium=false` (the client-side `locationService.stadiumGeofences` cache was loaded once per session at startup and never refetched). The mobile in-stadium gate now reads `result[0]?.current_stadium_id ?? null` instead of consulting a stale local polygon list. The `client.reads.stadiumGeofences()` SDK method is retained and unchanged — it still backs the debug-page consumer in `mobile/src/pages/debug/EdgeFunctionTest.tsx`.
+
 ## v0.2.0 - 2026-05-14
 
 Initial release.

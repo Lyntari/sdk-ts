@@ -51,11 +51,37 @@ export const NearbyVenuesRequestSchema = z.object({
 });
 
 /**
- * Nearby-venues response — typically an array of venue objects with
- * `id`, `name`, `distance_m`, etc. Element shape is server-defined;
- * schema accepts open object records to keep the transport permissive.
+ * Nearby-venues response — array of venue rows.
+ *
+ * **Three-state stadium-presence semantic** (server-derived; load-bearing for
+ * the mobile in-stadium gate as of `@lyntari/sdk` v0.3.0):
+ *
+ *   - `[]`                                       → the caller's `(latitude,
+ *                                                  longitude)` is not inside
+ *                                                  any active stadium polygon.
+ *   - `[{ ..., current_stadium_id: <uuid> }, ...]` → caller is inside that
+ *                                                  stadium. Every row carries
+ *                                                  the same `current_stadium_id`
+ *                                                  because the underlying RPC
+ *                                                  filters rows to that
+ *                                                  stadium's bound venues.
+ *
+ * Element shape is open (`passthrough()`); `current_stadium_id` is documented
+ * but its presence is conditional on the response being non-empty. Other
+ * fields (`id`, `name`, `distance`, `wait_time_minutes`, etc.) pass through
+ * verbatim and are not validated here.
+ *
+ * Wire compatibility: this is additive on the wire. Callers iterating the
+ * array continue to work — the typed `current_stadium_id` field is the only
+ * new typed addition.
  */
-export const NearbyVenuesResponseSchema = z.array(z.record(z.string(), z.unknown()));
+export const NearbyVenuesResponseSchema = z.array(
+  z
+    .object({
+      current_stadium_id: UuidSchema.optional(),
+    })
+    .passthrough(),
+);
 
 export type NearbyVenuesRequest = z.infer<typeof NearbyVenuesRequestSchema>;
 export type NearbyVenuesResponse = z.infer<typeof NearbyVenuesResponseSchema>;
