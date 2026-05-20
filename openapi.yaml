@@ -2004,6 +2004,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /record-insight-feedback:
+    post:
+      operationId: recordInsightFeedback
+      summary: POST record-insight-feedback
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                insight_id:
+                  type: string
+                  format: uuid
+                sentiment:
+                  type: string
+                  enum:
+                    - useful
+                    - not_useful
+                reason_code:
+                  type:
+                    - string
+                    - "null"
+                notes:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - insight_id
+                - sentiment
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback_id:
+                    type: string
+                    format: uuid
+                required:
+                  - feedback_id
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /update-insight-lifecycle:
+    post:
+      operationId: updateInsightLifecycle
+      summary: POST update-insight-lifecycle
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                insight_id:
+                  type: string
+                  format: uuid
+                action:
+                  type: string
+                  enum:
+                    - acknowledge
+                    - act
+                    - dismiss
+                action_taken_text:
+                  type:
+                    - string
+                    - "null"
+              required:
+                - insight_id
+                - action
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    enum:
+                      - true
+                  insight_id:
+                    type: string
+                    format: uuid
+                  action:
+                    type: string
+                    enum:
+                      - acknowledge
+                      - act
+                      - dismiss
+                required:
+                  - ok
+                  - insight_id
+                  - action
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus
