@@ -41,6 +41,7 @@ import * as Visits from './visits.js';
 import * as Location from './location.js';
 import * as Notifications from './notifications.js';
 import * as Reads from './reads.js';
+import * as Insights from './insights.js';
 
 // === Re-exports ===========================================================
 
@@ -50,6 +51,7 @@ export * from './visits.js';
 export * from './location.js';
 export * from './notifications.js';
 export * from './reads.js';
+export * from './insights.js';
 
 // === Registry types =======================================================
 
@@ -289,6 +291,26 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: true,
     requestSchema: Notifications.NotificationEventRequestSchema,
     responseSchema: Notifications.NotificationEventResponseSchema,
+  },
+
+  // --- insights (2; operator-facing, shipped 2026-05-20 cluster #13) -----
+  {
+    slug: 'record-insight-feedback',
+    method: 'POST',
+    path: path('record-insight-feedback'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Insights.RecordInsightFeedbackRequestSchema,
+    responseSchema: Insights.RecordInsightFeedbackResponseSchema,
+  },
+  {
+    slug: 'update-insight-lifecycle',
+    method: 'POST',
+    path: path('update-insight-lifecycle'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Insights.UpdateInsightLifecycleRequestSchema,
+    responseSchema: Insights.UpdateInsightLifecycleResponseSchema,
   },
 
   // --- reads (8) ---------------------------------------------------------
