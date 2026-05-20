@@ -2151,6 +2151,286 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /manage-venue-staffing:
+    post:
+      operationId: manageVenueStaffing
+      summary: POST manage-venue-staffing
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - insert
+                    venue_id:
+                      type: string
+                      format: uuid
+                    role:
+                      type: string
+                      minLength: 1
+                    staff_count:
+                      type: integer
+                      minimum: 0
+                    queue_id:
+                      type:
+                        - string
+                        - "null"
+                      format: uuid
+                    metadata:
+                      type:
+                        - object
+                        - "null"
+                      additionalProperties: {}
+                  required:
+                    - action
+                    - venue_id
+                    - role
+                    - staff_count
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - close
+                    staffing_id:
+                      type: string
+                      format: uuid
+                  required:
+                    - action
+                    - staffing_id
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - close_all
+                    venue_id:
+                      type: string
+                      format: uuid
+                  required:
+                    - action
+                    - venue_id
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - insert
+                      staffing_id:
+                        type: string
+                        format: uuid
+                    required:
+                      - ok
+                      - action
+                      - staffing_id
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - close
+                    required:
+                      - ok
+                      - action
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - close_all
+                      closed_count:
+                        type: integer
+                        minimum: 0
+                    required:
+                      - ok
+                      - action
+                      - closed_count
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /manage-event-phases:
+    post:
+      operationId: manageEventPhases
+      summary: POST manage-event-phases
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - started
+                    event_id:
+                      type: string
+                      format: uuid
+                    phase_name:
+                      type: string
+                      minLength: 1
+                  required:
+                    - action
+                    - event_id
+                    - phase_name
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - ended
+                    event_id:
+                      type: string
+                      format: uuid
+                    phase_name:
+                      type: string
+                      minLength: 1
+                  required:
+                    - action
+                    - event_id
+                    - phase_name
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - get_taxonomies
+                    sport:
+                      type: string
+                      minLength: 1
+                  required:
+                    - action
+                    - sport
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - started
+                      phase_row_id:
+                        type: string
+                        format: uuid
+                    required:
+                      - ok
+                      - action
+                      - phase_row_id
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - ended
+                    required:
+                      - ok
+                      - action
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum:
+                          - true
+                      action:
+                        type: string
+                        enum:
+                          - get_taxonomies
+                      phases:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: {}
+                    required:
+                      - ok
+                      - action
+                      - phases
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus
