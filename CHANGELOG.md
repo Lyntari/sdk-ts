@@ -6,7 +6,7 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 
 ### Added
 
-- `client.location.createTracker(options)` — new stateful tracker module that polls `nearby-venues` on a configurable interval (default 30s), derives server-side stadium presence from the `current_stadium_id` row field (added in v0.2.1), and POSTs `location-update` when in a stadium so the server-side notification cron's spatial gate (`app.user_locations` recency check) sees a fresh row. Exposes `start()`, `stop()`, `forceTick()`, `isRunning()`. Consumers supply a platform-specific `getCurrentPosition()` and receive state via `onStateChange(state)` callbacks; errors route to an optional `onError(err)`.
+- `client.location.createTracker(options)` — new stateful tracker module that polls `nearby-venues` on a configurable interval (default 30s), derives server-side stadium presence from the `current_stadium_id` row field (added in v0.2.1), and POSTs `location-update` when in a stadium so the server-side notification path sees a fresh location update for the user. Exposes `start()`, `stop()`, `forceTick()`, `isRunning()`. Consumers supply a platform-specific `getCurrentPosition()` and receive state via `onStateChange(state)` callbacks; errors route to an optional `onError(err)`.
 
   Extracted from the mobile-side `LocationContext.tsx` polling/eager-flip loop so multiple clients can consume the same in-stadium algorithm without duplicating it. The mobile-side refactor to consume the tracker lands in `mobile/` separately; the SDK side ships first because `mobile`'s CodeMagic build clones `sdk-ts/main`.
 

@@ -1,12 +1,12 @@
 /**
- * Insights operator-flow SDK methods — 2 endpoints (shipped 2026-05-20, cluster #13).
+ * Insights operator-flow SDK methods — 2 endpoints.
  *
- *   - `recordFeedback` → record-insight-feedback EF → rpc_record_insight_feedback
- *   - `updateLifecycle` → update-insight-lifecycle EF → rpc_update_insight_lifecycle
+ *   - `recordFeedback` → record-insight-feedback EF
+ *   - `updateLifecycle` → update-insight-lifecycle EF
  *
  * Both are operator-facing (Retool calls these from the insights dashboard).
- * Both require HMAC + JWT; the EF derives p_operator_user_id from the JWT
- * sub claim — caller doesn't supply it.
+ * Both require HMAC + JWT; the operator user is derived from the
+ * authenticated session — caller doesn't supply it.
  */
 
 import type {
@@ -22,9 +22,8 @@ import { jwtCallOpts } from './_shared.js';
 export interface InsightsMethods {
   /**
    * `record-insight-feedback` — operator clicks 👍/👎 on an insight.
-   * `reason_code` validated server-side against `ops.config.insight_feedback_reason_codes`.
-   * `notes` is free-form operator context. Returns the new
-   * `ml.insight_feedback.id`.
+   * `reason_code`, if present, is validated server-side against the allowed-codes registry.
+   * `notes` is free-form operator context. Returns the new feedback row's id.
    */
   recordFeedback(input: RecordInsightFeedbackRequest): Promise<RecordInsightFeedbackResponse>;
 

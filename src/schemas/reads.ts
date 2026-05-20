@@ -11,9 +11,8 @@
  *
  * Notable contract details:
  *
- * - **`congestion-status` and `stadium-zones` use `p_*` parameter names**
- *   verbatim at the wire (`p_stadium_id`) — same convention as
- *   `congestion-history`. Both are HMAC + JWT.
+ * - **`congestion-status` and `stadium-zones` use the wire field `p_stadium_id`.**
+ *   Both are HMAC + JWT.
  *
  * - **`stadium-zones` response** is `{zones, geofence}`. `geofence` is
  *   nullable; `zones` is an open array.

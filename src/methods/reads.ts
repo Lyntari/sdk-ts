@@ -40,7 +40,7 @@ import { jwtCallOpts } from './_shared.js';
 export interface ReadsMethods {
   /**
    * `congestion-status` — current per-zone congestion for a stadium.
-   * Body uses the `p_*` RPC parameter convention (`p_stadium_id`).
+   * Body field: `p_stadium_id` (UUID).
    */
   congestionStatus(input: CongestionStatusRequest): Promise<CongestionStatusResponse>;
 

@@ -26,8 +26,8 @@ seconds):
 3. Emits an `onStateChange(state)` event with `{inStadium, currentStadiumId,
    nearbyVenues, coordinates}`.
 4. When in a stadium, posts `location-update` with the same coordinates so
-   the server's proximity-notification cron sees a recent
-   `app.user_locations` row for the user.
+   the server-side proximity-notification path sees a recent location
+   update for the user.
 
 Out-of-stadium ticks skip the `location-update` POST.
 

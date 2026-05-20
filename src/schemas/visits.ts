@@ -121,8 +121,7 @@ export type PosCurrentVisitsResponse = z.infer<typeof PosCurrentVisitsResponseSc
 // === congestion-history ===================================================
 
 /**
- * Congestion history request. The wire field names use the `p_*` prefix
- * convention.
+ * Congestion history request.
  *
  * Required: `p_stadium_id`. Optional: `p_zone_id`, `p_from`, `p_to`
  * (all ISO-8601 timestamps when present).
