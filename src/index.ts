@@ -54,6 +54,7 @@ import type {
   AuthState,
 } from './auth/types.js';
 import { createAuthMethods, type AuthMethods } from './methods/auth.js';
+import { createEventsMethods, type EventsMethods } from './methods/events.js';
 import { createInsightsMethods, type InsightsMethods } from './methods/insights.js';
 import { createLocationMethods, type LocationMethods } from './methods/location.js';
 import {
@@ -147,6 +148,8 @@ export interface LyntariClient {
   readonly notifications: NotificationsMethods;
   /** Insights operator-flow methods (shipped cluster #13): recordFeedback + updateLifecycle. */
   readonly insights: InsightsMethods;
+  /** Events operator-flow methods (shipped cluster #14): manageStaffing + managePhase. */
+  readonly events: EventsMethods;
   /** Read-flow methods: 8 methods covering stadium reads, profile, history, categories. */
   readonly reads: ReadsMethods;
   /** OneSignal subscription save orchestration. `start` / `stop` are `undefined` in caller-managed mode (no auth lifecycle). */
@@ -243,6 +246,7 @@ export function createLyntariClient(config: CreateClientConfig): LyntariClient {
     location: createLocationMethods(frozenConfig, state),
     notifications,
     insights: createInsightsMethods(frozenConfig, state),
+    events: createEventsMethods(frozenConfig, state),
     reads: createReadsMethods(frozenConfig, state),
     pushSubscriptions: pushSubscriptionsSurface,
     setAccessToken: (token) => {
