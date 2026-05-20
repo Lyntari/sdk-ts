@@ -372,6 +372,301 @@ describe('error envelope mapping', () => {
   });
 });
 
+// === insights operator EFs (cluster #13, hmac+jwt mode) ====================
+
+describe('insights.recordFeedback (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-1');
+  });
+
+  it('POSTs to /record-insight-feedback with insight_id + sentiment + _auth (jwt + signature)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { feedback_id: '9c5cf26a-7e1d-4f3a-8c91-7a0b1f5d6e22' },
+      }),
+    );
+
+    const result = await client.insights.recordFeedback({
+      insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+      sentiment: 'useful',
+      reason_code: null,
+      notes: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/record-insight-feedback`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.insight_id).toBe('7d42f058-b23e-4c33-804b-e78c01d9a443');
+    expect(sentBody.sentiment).toBe('useful');
+    expect(sentBody._auth.apiKey).toBe(API_KEY);
+    expect(sentBody._auth.token).toBe('jwt-operator-1');
+    expect(typeof sentBody._auth.timestamp).toBe('string');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // non-idempotent: no Idempotency-Key header
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeUndefined();
+
+    expect(result.feedback_id).toBe('9c5cf26a-7e1d-4f3a-8c91-7a0b1f5d6e22');
+  });
+});
+
+describe('insights.updateLifecycle (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-2');
+  });
+
+  it('POSTs to /update-insight-lifecycle with action + action_taken_text passed through', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          ok: true,
+          insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+          action: 'act',
+        },
+      }),
+    );
+
+    const result = await client.insights.updateLifecycle({
+      insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+      action: 'act',
+      action_taken_text: 'Dispatched 3 runners to gate 7',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/update-insight-lifecycle`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('act');
+    expect(sentBody.action_taken_text).toBe('Dispatched 3 runners to gate 7');
+    expect(sentBody._auth.token).toBe('jwt-operator-2');
+
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe('act');
+  });
+});
+
+// === events operator EFs (cluster #14, hmac+jwt mode, discriminated union) =
+
+describe('events.manageStaffing (hmac+jwt mode, discriminated union)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+  const VENUE_ID = '3d7d62b4-45ed-471c-93e9-4a01fe4825c1';
+  const STAFFING_ID = 'a91b1f00-2c1f-4a44-8a55-bb9c8a8e7e02';
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-events');
+  });
+
+  it('action=insert — POSTs venue_id + role + staff_count, returns staffing_id', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { ok: true, action: 'insert', staffing_id: STAFFING_ID },
+      }),
+    );
+
+    const result = await client.events.manageStaffing({
+      action: 'insert',
+      venue_id: VENUE_ID,
+      role: 'cashier',
+      staff_count: 3,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/manage-venue-staffing`);
+    expect(init?.method).toBe('POST');
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('insert');
+    expect(sentBody.venue_id).toBe(VENUE_ID);
+    expect(sentBody.role).toBe('cashier');
+    expect(sentBody.staff_count).toBe(3);
+    expect(sentBody._auth.token).toBe('jwt-operator-events');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // type narrowing: insert response has staffing_id
+    if (result.action === 'insert') {
+      expect(result.staffing_id).toBe(STAFFING_ID);
+    } else {
+      throw new Error('expected action=insert response');
+    }
+  });
+
+  it('action=close — POSTs staffing_id only, returns ok envelope', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { ok: true, action: 'close' } }),
+    );
+
+    const result = await client.events.manageStaffing({
+      action: 'close',
+      staffing_id: STAFFING_ID,
+    });
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('close');
+    expect(sentBody.staffing_id).toBe(STAFFING_ID);
+    // close branch does NOT carry venue_id / role / staff_count
+    expect(sentBody.venue_id).toBeUndefined();
+    expect(sentBody.role).toBeUndefined();
+    expect(sentBody.staff_count).toBeUndefined();
+
+    expect(result.action).toBe('close');
+    expect(result.ok).toBe(true);
+  });
+
+  it('action=close_all — POSTs venue_id, returns closed_count', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { ok: true, action: 'close_all', closed_count: 4 },
+      }),
+    );
+
+    const result = await client.events.manageStaffing({
+      action: 'close_all',
+      venue_id: VENUE_ID,
+    });
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('close_all');
+    expect(sentBody.venue_id).toBe(VENUE_ID);
+
+    if (result.action === 'close_all') {
+      expect(result.closed_count).toBe(4);
+    } else {
+      throw new Error('expected action=close_all response');
+    }
+  });
+});
+
+describe('events.managePhase (hmac+jwt mode, discriminated union)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+  const EVENT_ID = 'b47f4b9d-e1f9-444a-aef4-8adf666befbc';
+  const PHASE_ROW_ID = 'c5a2f1d3-9e8b-4d7a-b612-1f0e3d9c5a6b';
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-phases');
+  });
+
+  it('action=started — POSTs event_id + phase_name, server hard-validates name; client returns phase_row_id', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { ok: true, action: 'started', phase_row_id: PHASE_ROW_ID },
+      }),
+    );
+
+    const result = await client.events.managePhase({
+      action: 'started',
+      event_id: EVENT_ID,
+      phase_name: 'Q2',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/manage-event-phases`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('started');
+    expect(sentBody.event_id).toBe(EVENT_ID);
+    expect(sentBody.phase_name).toBe('Q2');
+    expect(sentBody._auth.token).toBe('jwt-operator-phases');
+
+    if (result.action === 'started') {
+      expect(result.phase_row_id).toBe(PHASE_ROW_ID);
+    } else {
+      throw new Error('expected action=started response');
+    }
+  });
+
+  it('action=ended — POSTs event_id + phase_name, returns ok envelope', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { ok: true, action: 'ended' } }),
+    );
+
+    const result = await client.events.managePhase({
+      action: 'ended',
+      event_id: EVENT_ID,
+      phase_name: 'halftime',
+    });
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('ended');
+    expect(sentBody.event_id).toBe(EVENT_ID);
+    expect(sentBody.phase_name).toBe('halftime');
+
+    expect(result.action).toBe('ended');
+    expect(result.ok).toBe(true);
+  });
+
+  it('action=get_taxonomies — POSTs sport, returns phases array (read-only path)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          ok: true,
+          action: 'get_taxonomies',
+          phases: [
+            { sport: 'NFL', phase_name: 'pre_game', phase_index: 0 },
+            { sport: 'NFL', phase_name: 'Q1', phase_index: 1 },
+            { sport: 'NFL', phase_name: 'Q2', phase_index: 2 },
+            { sport: 'NFL', phase_name: 'halftime', phase_index: 3 },
+            { sport: 'NFL', phase_name: 'Q3', phase_index: 4 },
+            { sport: 'NFL', phase_name: 'Q4', phase_index: 5 },
+            { sport: 'NFL', phase_name: 'OT', phase_index: 6 },
+            { sport: 'NFL', phase_name: 'post', phase_index: 7 },
+          ],
+        },
+      }),
+    );
+
+    const result = await client.events.managePhase({
+      action: 'get_taxonomies',
+      sport: 'NFL',
+    });
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('get_taxonomies');
+    expect(sentBody.sport).toBe('NFL');
+
+    if (result.action === 'get_taxonomies') {
+      expect(result.phases.length).toBe(8);
+      expect(result.phases[0]).toMatchObject({ phase_name: 'pre_game' });
+    } else {
+      throw new Error('expected action=get_taxonomies response');
+    }
+  });
+});
+
 // === idempotency-key explicit override =====================================
 
 describe('idempotency-key explicit override', () => {

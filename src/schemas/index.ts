@@ -41,6 +41,8 @@ import * as Visits from './visits.js';
 import * as Location from './location.js';
 import * as Notifications from './notifications.js';
 import * as Reads from './reads.js';
+import * as Insights from './insights.js';
+import * as Events from './events.js';
 
 // === Re-exports ===========================================================
 
@@ -50,6 +52,8 @@ export * from './visits.js';
 export * from './location.js';
 export * from './notifications.js';
 export * from './reads.js';
+export * from './insights.js';
+export * from './events.js';
 
 // === Registry types =======================================================
 
@@ -289,6 +293,46 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: true,
     requestSchema: Notifications.NotificationEventRequestSchema,
     responseSchema: Notifications.NotificationEventResponseSchema,
+  },
+
+  // --- insights (2; operator-facing, shipped 2026-05-20 cluster #13) -----
+  {
+    slug: 'record-insight-feedback',
+    method: 'POST',
+    path: path('record-insight-feedback'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Insights.RecordInsightFeedbackRequestSchema,
+    responseSchema: Insights.RecordInsightFeedbackResponseSchema,
+  },
+  {
+    slug: 'update-insight-lifecycle',
+    method: 'POST',
+    path: path('update-insight-lifecycle'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Insights.UpdateInsightLifecycleRequestSchema,
+    responseSchema: Insights.UpdateInsightLifecycleResponseSchema,
+  },
+
+  // --- events (2; operator-facing, shipped 2026-05-20 cluster #14) -------
+  {
+    slug: 'manage-venue-staffing',
+    method: 'POST',
+    path: path('manage-venue-staffing'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Events.ManageVenueStaffingRequestSchema,
+    responseSchema: Events.ManageVenueStaffingResponseSchema,
+  },
+  {
+    slug: 'manage-event-phases',
+    method: 'POST',
+    path: path('manage-event-phases'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Events.ManageEventPhasesRequestSchema,
+    responseSchema: Events.ManageEventPhasesResponseSchema,
   },
 
   // --- reads (8) ---------------------------------------------------------
