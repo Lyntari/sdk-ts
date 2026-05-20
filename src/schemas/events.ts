@@ -1,15 +1,11 @@
 /**
- * Events operator-flow EF schemas — 2 endpoints (shipped 2026-05-20, cluster #14):
+ * Events operator-flow EF schemas — 2 endpoints:
  *   - `manage-venue-staffing` (POST, HMAC + JWT) — operator manages venue staffing
  *   - `manage-event-phases` (POST, HMAC + JWT) — operator manages event phase lifecycle
  *
  * Both are multi-action operator-facing EFs. The body shape is a Zod
  * `discriminatedUnion('action', [...])` so the SDK caller selects the action
  * by literal field and the corresponding required args are type-narrowed.
- *
- * **Vendoring status (cluster #14 deferral):** same as cluster #13 — deployed
- * EFs use INLINE schemas mirroring these shapes. The schema-vendoring drift
- * gate is deferred until the next sdk-ts release cycle.
  */
 
 import { z } from 'zod';
@@ -28,7 +24,7 @@ import { UuidSchema } from './_common.js';
  * - `close_all` — bulk-close ALL currently-open staffing rows for `venue_id`
  *   across roles. Returns `closed_count`.
  *
- * `p_set_by_user_id` is JWT-derived on the server (caller doesn't supply).
+ * The operator user is derived on the server from the authenticated session (caller doesn't supply).
  */
 export const ManageVenueStaffingRequestSchema = z.discriminatedUnion('action', [
   z.object({
@@ -69,9 +65,9 @@ export type ManageVenueStaffingResponse = z.infer<typeof ManageVenueStaffingResp
 /**
  * Manage-event-phases request. Three actions:
  *
- * - `started` — insert a new event_phases row. `phase_name` hard-validated
- *   against `events.phase_taxonomies WHERE sport = event.event_type`;
- *   server raises `rpc_validation_failed` (400) on mismatch. Auto-closes
+ * - `started` — opens a new event phase. `phase_name` is hard-validated
+ *   against the phase taxonomy for the event's sport; server returns
+ *   400 `rpc_validation_failed` on mismatch. Auto-closes
  *   any prior open phase for the event (single-current-phase invariant).
  * - `ended` — close the most recent open `(event_id, phase_name)` row.
  *   Server raises if no open row.

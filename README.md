@@ -144,8 +144,8 @@ Each tick:
 3. Extracts `currentStadiumId = result[0]?.current_stadium_id ?? null` and
    emits `onStateChange({inStadium, currentStadiumId, nearbyVenues, coordinates})`.
 4. If `inStadium === true`, POSTs `client.location.update({latitude, longitude,
-   accuracy, timestamp_ms})` so the server-side proximity-notification cron's
-   spatial gate sees a fresh `app.user_locations` row.
+   accuracy, timestamp_ms})` so the server-side proximity-notification
+   path sees a fresh location update.
 
 Behavior:
 

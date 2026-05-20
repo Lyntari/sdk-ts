@@ -146,9 +146,9 @@ export interface LyntariClient {
   readonly location: LocationMethods;
   /** Notification-flow methods: 8 methods covering subscriptions, preferences, trigger, event. */
   readonly notifications: NotificationsMethods;
-  /** Insights operator-flow methods (shipped cluster #13): recordFeedback + updateLifecycle. */
+  /** Insights operator-flow methods: recordFeedback + updateLifecycle. */
   readonly insights: InsightsMethods;
-  /** Events operator-flow methods (shipped cluster #14): manageStaffing + managePhase. */
+  /** Events operator-flow methods: manageStaffing + managePhase. */
   readonly events: EventsMethods;
   /** Read-flow methods: 8 methods covering stadium reads, profile, history, categories. */
   readonly reads: ReadsMethods;

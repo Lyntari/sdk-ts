@@ -372,7 +372,7 @@ describe('error envelope mapping', () => {
   });
 });
 
-// === insights operator EFs (cluster #13, hmac+jwt mode) ====================
+// === insights operator EFs (hmac+jwt mode) =================================
 
 describe('insights.recordFeedback (hmac+jwt mode)', () => {
   let fetchMock: MockedFunction<typeof fetch>;
@@ -466,7 +466,7 @@ describe('insights.updateLifecycle (hmac+jwt mode)', () => {
   });
 });
 
-// === events operator EFs (cluster #14, hmac+jwt mode, discriminated union) =
+// === events operator EFs (hmac+jwt mode, discriminated union) ==============
 
 describe('events.manageStaffing (hmac+jwt mode, discriminated union)', () => {
   let fetchMock: MockedFunction<typeof fetch>;

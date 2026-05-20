@@ -295,7 +295,7 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     responseSchema: Notifications.NotificationEventResponseSchema,
   },
 
-  // --- insights (2; operator-facing, shipped 2026-05-20 cluster #13) -----
+  // --- insights (2; operator-facing) ------------------------------------
   {
     slug: 'record-insight-feedback',
     method: 'POST',
@@ -315,7 +315,7 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     responseSchema: Insights.UpdateInsightLifecycleResponseSchema,
   },
 
-  // --- events (2; operator-facing, shipped 2026-05-20 cluster #14) -------
+  // --- events (2; operator-facing) --------------------------------------
   {
     slug: 'manage-venue-staffing',
     method: 'POST',

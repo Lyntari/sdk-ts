@@ -1,5 +1,5 @@
 /**
- * Events operator-flow SDK methods — 2 endpoints (shipped 2026-05-20, cluster #14).
+ * Events operator-flow SDK methods — 2 endpoints.
  *
  *   - `manageStaffing` → manage-venue-staffing EF (action: insert/close/close_all)
  *   - `managePhase` → manage-event-phases EF (action: started/ended/get_taxonomies)
@@ -26,7 +26,7 @@ export interface EventsMethods {
    * discriminator. `insert` auto-closes prior open row for the same
    * (venue_id, role). `close` enforces "exists + currently-open" invariant.
    * `close_all` is a bulk operation across all roles for a venue. The
-   * server derives `set_by_user_id` from the JWT sub claim.
+   * server derives the operator user from the authenticated session.
    */
   manageStaffing(
     input: ManageVenueStaffingRequest,
@@ -35,8 +35,8 @@ export interface EventsMethods {
   /**
    * `manage-event-phases` — operator manages event phase lifecycle via
    * action discriminator. `started` hard-validates `phase_name` against
-   * the NFL/MLB/NBA/NHL/FIFA/concert phase taxonomy for the event's
-   * `event_type`; auto-closes any prior open phase. `ended` closes the
+   * the phase taxonomy for the event's sport; auto-closes any prior
+   * open phase. `ended` closes the
    * most recent matching open phase. `get_taxonomies` is a read-only
    * action returning the phase catalog for a sport.
    */
