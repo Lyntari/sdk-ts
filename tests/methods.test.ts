@@ -372,6 +372,100 @@ describe('error envelope mapping', () => {
   });
 });
 
+// === insights operator EFs (cluster #13, hmac+jwt mode) ====================
+
+describe('insights.recordFeedback (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-1');
+  });
+
+  it('POSTs to /record-insight-feedback with insight_id + sentiment + _auth (jwt + signature)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { feedback_id: '9c5cf26a-7e1d-4f3a-8c91-7a0b1f5d6e22' },
+      }),
+    );
+
+    const result = await client.insights.recordFeedback({
+      insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+      sentiment: 'useful',
+      reason_code: null,
+      notes: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/record-insight-feedback`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.insight_id).toBe('7d42f058-b23e-4c33-804b-e78c01d9a443');
+    expect(sentBody.sentiment).toBe('useful');
+    expect(sentBody._auth.apiKey).toBe(API_KEY);
+    expect(sentBody._auth.token).toBe('jwt-operator-1');
+    expect(typeof sentBody._auth.timestamp).toBe('string');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // non-idempotent: no Idempotency-Key header
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeUndefined();
+
+    expect(result.feedback_id).toBe('9c5cf26a-7e1d-4f3a-8c91-7a0b1f5d6e22');
+  });
+});
+
+describe('insights.updateLifecycle (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-operator-2');
+  });
+
+  it('POSTs to /update-insight-lifecycle with action + action_taken_text passed through', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          ok: true,
+          insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+          action: 'act',
+        },
+      }),
+    );
+
+    const result = await client.insights.updateLifecycle({
+      insight_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+      action: 'act',
+      action_taken_text: 'Dispatched 3 runners to gate 7',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/update-insight-lifecycle`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('act');
+    expect(sentBody.action_taken_text).toBe('Dispatched 3 runners to gate 7');
+    expect(sentBody._auth.token).toBe('jwt-operator-2');
+
+    expect(result.ok).toBe(true);
+    expect(result.action).toBe('act');
+  });
+});
+
 // === idempotency-key explicit override =====================================
 
 describe('idempotency-key explicit override', () => {
