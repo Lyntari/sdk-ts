@@ -2,6 +2,12 @@
 
 All notable changes to `@lyntari/sdk` are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.2.3 - 2026-05-20
+
+### Changed
+
+- Internal documentation cleanup per CLAUDE.md sdk-ts boundary directive — no behavior change, no wire contract change, no method signature change. Scrubs internal SQL identifiers, RPC names, RPC parameter names, internal config keys, SQLSTATE codes, and internal cluster-tracking markers from docstrings and public JSDoc. See [Lyntari/sdk-ts#5](https://github.com/Lyntari/sdk-ts/pull/5) for the cleanup audit + the resulting diff.
+
 ## v0.2.2 - Unreleased
 
 ### Added
