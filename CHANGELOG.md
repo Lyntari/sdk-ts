@@ -2,6 +2,8 @@
 
 All notable changes to `@lyntari/sdk` are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Versioning convention (cluster #42, 2026-05-27).** Going forward, version headers are written as `## vX.Y.Z` (or `## vX.Y.Z - <one-line summary>`) with no date stamp. Release dates live in git tags + npm package metadata. The earlier `## vX.Y.Z - Unreleased` → CI-stamps-on-tag pattern was retired (the stamping step in `.github/workflows/publish.yml` was removed at the same time). Historical sections written under the old convention — including the dated v0.2.0 header and the v0.2.1 / v0.2.2 / v0.2.3 sections still tagged `- Unreleased` — are preserved as-is. New version sections added below should use the simpler format.
+
 ## v0.2.3 - Unreleased
 
 ### Changed
@@ -9,6 +11,18 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 - Internal documentation cleanup per CLAUDE.md sdk-ts boundary directive — no behavior change, no wire contract change, no method signature change. Scrubs internal SQL identifiers, RPC names, RPC parameter names, internal config keys, SQLSTATE codes, and internal cluster-tracking markers from docstrings and public JSDoc. See [Lyntari/sdk-ts#5](https://github.com/Lyntari/sdk-ts/pull/5) for the cleanup audit + the resulting diff.
 
 ## v0.2.2 - Unreleased
+
+### Added (operator surface — clusters #13 + #14)
+
+- `client.insights.recordFeedback({ insightId, sentiment, reasonCode?, operatorUserId?, notes? })` — 👍 / 👎 feedback path for operator-facing insights. Sentiment is the discriminator (`useful` / `not_useful`); `reasonCode` is validated server-side against the `ops.config.insight_feedback_reason_codes` allowed-codes registry. HMAC + JWT auth. Wraps the `record-insight-feedback` Edge Function (deployed May 2026). Backed by `RecordInsightFeedbackRequestSchema` / `RecordInsightFeedbackResponseSchema` in `src/schemas/insights.ts`; happy-path + invalid-reason-code tests in `tests/methods.test.ts`.
+
+- `client.insights.updateLifecycle({ insightId, action, actionTakenText? })` — operator state-machine transitions for insights (`acknowledge` / `act` / `dismiss`). `action='act'` requires `actionTakenText`; the server returns the new lifecycle state derived from the `(acknowledged_at, acted_at, dismissed_at)` triple. HMAC + JWT auth. Wraps the `update-insight-lifecycle` Edge Function. Backed by `UpdateInsightLifecycleRequestSchema` (discriminated on `action`) + `UpdateInsightLifecycleResponseSchema` in `src/schemas/insights.ts`; discriminated-union branch coverage in `tests/methods.test.ts`.
+
+- `client.events.manageStaffing({ ... })` — operator staffing-management surface for `app.venue_staffing`. Discriminated union: `op='insert'` adds a new open staffing row (auto-closing any prior open `(venue_id, role)` row), `op='close'` closes a specific staffing row by id, `op='close_all'` bulk-closes all open rows for a venue. HMAC + JWT auth. Wraps the `manage-venue-staffing` Edge Function. Backed by `ManageVenueStaffingRequestSchema` (discriminated on `op`) + `ManageVenueStaffingResponseSchema` in `src/schemas/events.ts`; happy-path + each-discriminated-branch coverage in `tests/methods.test.ts`.
+
+- `client.events.managePhase({ ... })` — operator event-phase-management surface for `events.event_phases`. Discriminated union: `op='started'` opens a new phase (validates `phase_name` against the `events.phase_taxonomies` catalog for the event's sport; auto-closes any prior open phase for the event), `op='ended'` closes the current open phase, `op='get_taxonomies'` returns the allowed phase names + sort order for a given sport so the operator-console dropdown can populate. HMAC + JWT auth. Wraps the `manage-event-phases` Edge Function. Backed by `ManageEventPhasesRequestSchema` (discriminated on `op`) + `ManageEventPhasesResponseSchema` in `src/schemas/events.ts`; happy-path + each-discriminated-branch coverage in `tests/methods.test.ts`.
+
+These four methods + their EFs are the operator console's write surface for the ML platform's insight + staffing + event-phase flows. The corresponding read paths (Retool widget queries via `public.get_*` SECURITY DEFINER functions) live on the server side and are not exposed via the SDK — operator reads go straight from Retool to PostgREST as the `authenticated` role.
 
 ### Added
 
