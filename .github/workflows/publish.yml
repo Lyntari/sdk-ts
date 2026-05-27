@@ -1,12 +1,9 @@
 name: Publish
 
 # Publish-on-tag. Fires on `v*` tags and publishes to npm using the
-# repo's `NPM_TOKEN` secret.
-#
-# Also auto-stamps the release date into CHANGELOG.md so the published
-# tarball carries the actual ship date instead of "Unreleased", and
-# commits the stamped CHANGELOG back to main so future readers and the
-# next release see the real date in repo history.
+# repo's `NPM_TOKEN` secret. Release dates live in git tags + the npm
+# package metadata; the CHANGELOG no longer carries date stamps per the
+# cluster #42 convention retirement (2026-05-27).
 
 on:
   push:
@@ -22,9 +19,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # Fetch full history so the post-publish step can push back to main.
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -35,28 +29,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # Replace `## v<X.Y.Z> - Unreleased` with `## v<X.Y.Z> - <today UTC>`
-      # in CHANGELOG.md for the version being released. Fails the workflow
-      # if the expected header isn't present — that's a release-prep
-      # mistake (the CHANGELOG should have an Unreleased entry for the
-      # tagged version before the tag is cut).
-      #
-      # The dated CHANGELOG is what gets packed into the npm tarball
-      # (publish runs against the modified working tree). After publish,
-      # the final step commits the same change back to main.
-      - name: Stamp release date in CHANGELOG
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          TODAY=$(date -u +%Y-%m-%d)
-          OLD="## v${VERSION} - Unreleased"
-          NEW="## v${VERSION} - ${TODAY}"
-          if ! grep -qF "$OLD" CHANGELOG.md; then
-            echo "::error::Expected '$OLD' header in CHANGELOG.md not found. Did you forget an Unreleased entry for v${VERSION}?"
-            exit 1
-          fi
-          perl -i -pe "s/\Q$OLD\E/$NEW/" CHANGELOG.md
-          echo "Stamped: $OLD → $NEW"
 
       - name: Typecheck
         run: npm run typecheck
@@ -80,11 +52,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # After successful publish, push the date-stamped CHANGELOG to main.
-      # Assumes the tag was cut from main HEAD (the common case). If main
-      # has advanced past the tag, the push fails non-fast-forward — we
-      # log a warning rather than failing the workflow because the npm
-      # publish already succeeded; the maintainer can stamp manually.
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
