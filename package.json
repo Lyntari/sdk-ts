@@ -1,6 +1,6 @@
 {
   "name": "@lyntari/sdk",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Official Lyntari API SDK — typed methods, runtime validation, HMAC-signed transport.",
   "license": "UNLICENSED",
   "private": false,

@@ -4,6 +4,16 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 
 > **Versioning convention (cluster #42, 2026-05-27).** Going forward, version headers are written as `## vX.Y.Z` (or `## vX.Y.Z - <one-line summary>`) with no date stamp. Release dates live in git tags + npm package metadata. The earlier `## vX.Y.Z - Unreleased` → CI-stamps-on-tag pattern was retired (the stamping step in `.github/workflows/publish.yml` was removed at the same time). Historical sections written under the old convention — including the dated v0.2.0 header and the v0.2.1 / v0.2.2 / v0.2.3 sections still tagged `- Unreleased` — are preserved as-is. New version sections added below should use the simpler format.
 
+## v0.2.4 - documentation cleanup release
+
+Documentation + tooling cleanup, no behavior change in the SDK runtime. Validates the simplified `publish.yml` workflow (cluster #42) in isolation before any feature release. Specifically:
+
+- **CHANGELOG backfill** — adds entries for the four operator-surface SDK methods (`client.insights.recordFeedback`, `client.insights.updateLifecycle`, `client.events.manageStaffing`, `client.events.managePhase`) that landed in the v0.2.2 unreleased train but weren't documented at the time. See the v0.2.2 section below for the per-method shape.
+- **Versioning convention retired** — `## vX.Y.Z - Unreleased` → CI-stamps-release-date pattern removed. Future entries use `## vX.Y.Z` (with an optional one-line summary like this section's header) and release dates live in git tags + npm package metadata. Historical sections preserved as-is.
+- **`publish.yml` simplified** — removed the stamp-release-date step (which broke during v0.2.3 release prep), the `fetch-depth: 0` on Checkout (only needed for a never-implemented post-publish push-back-to-main), and the orphaned post-publish comment block. The workflow now has 9 steps with no broken dependencies.
+
+**No new methods, no schema changes, no transport changes, no test additions.** SDK consumers upgrading from v0.2.3 see no observable difference — the upgrade exists solely to flush the documentation backfill + validate the simplified release tooling.
+
 ## v0.2.3 - Unreleased
 
 ### Changed
