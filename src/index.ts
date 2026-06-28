@@ -54,9 +54,14 @@ import type {
   AuthState,
 } from './auth/types.js';
 import { createAuthMethods, type AuthMethods } from './methods/auth.js';
+import { createConsentMethods, type ConsentMethods } from './methods/consent.js';
 import { createEventsMethods, type EventsMethods } from './methods/events.js';
 import { createInsightsMethods, type InsightsMethods } from './methods/insights.js';
 import { createLocationMethods, type LocationMethods } from './methods/location.js';
+import {
+  createRecommendationsMethods,
+  type RecommendationsMethods,
+} from './methods/recommendations.js';
 import {
   createNotificationsMethods,
   type NotificationsMethods,
@@ -152,6 +157,10 @@ export interface LyntariClient {
   readonly events: EventsMethods;
   /** Read-flow methods: 8 methods covering stadium reads, profile, history, categories. */
   readonly reads: ReadsMethods;
+  /** Consent-flow methods: get + set (grant / one-tap revoke) the user's consent map. */
+  readonly consent: ConsentMethods;
+  /** Recommendations-flow methods: get personalized ABO recommendations for a venue. */
+  readonly recommendations: RecommendationsMethods;
   /** OneSignal subscription save orchestration. `start` / `stop` are `undefined` in caller-managed mode (no auth lifecycle). */
   readonly pushSubscriptions: Partial<PushSubscriptionsSurface>;
 
@@ -248,6 +257,8 @@ export function createLyntariClient(config: CreateClientConfig): LyntariClient {
     insights: createInsightsMethods(frozenConfig, state),
     events: createEventsMethods(frozenConfig, state),
     reads: createReadsMethods(frozenConfig, state),
+    consent: createConsentMethods(frozenConfig, state),
+    recommendations: createRecommendationsMethods(frozenConfig, state),
     pushSubscriptions: pushSubscriptionsSurface,
     setAccessToken: (token) => {
       state.accessToken = token;
@@ -266,6 +277,8 @@ export type { VisitsMethods } from './methods/visits.js';
 export type { LocationMethods } from './methods/location.js';
 export type { NotificationsMethods } from './methods/notifications.js';
 export type { ReadsMethods } from './methods/reads.js';
+export type { ConsentMethods } from './methods/consent.js';
+export type { RecommendationsMethods } from './methods/recommendations.js';
 
 // Auth lifecycle + storage surface
 export type { TokenStorage } from './storage/types.js';

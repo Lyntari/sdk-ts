@@ -4,6 +4,16 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 
 > **Versioning convention (cluster #42, 2026-05-27).** Going forward, version headers are written as `## vX.Y.Z` (or `## vX.Y.Z - <one-line summary>`) with no date stamp. Release dates live in git tags + npm package metadata. The earlier `## vX.Y.Z - Unreleased` → CI-stamps-on-tag pattern was retired (the stamping step in `.github/workflows/publish.yml` was removed at the same time). Historical sections written under the old convention — including the dated v0.2.0 header and the v0.2.1 / v0.2.2 / v0.2.3 sections still tagged `- Unreleased` — are preserved as-is. New version sections added below should use the simpler format.
 
+## v0.2.5 - consent + recommendations surface
+
+### Added (consumer surface)
+
+- `client.consent.get()` — read the authenticated user's consent map (`consent_type` → `{ granted, granted_at, revoked_at }`). Absent keys mean the user has never set that consent (treated as not-granted). HMAC + JWT auth; the user is JWT-derived (no user id argument). Wraps the `consent-get` Edge Function. Backed by `GetConsentRequestSchema` / `GetConsentResponseSchema` in `src/schemas/consent.ts`; happy-path coverage in `tests/methods.test.ts`.
+
+- `client.consent.set({ consent_type, granted })` — grant (`granted: true`) or one-tap-revoke (`granted: false`) a single consent type, returning the full updated consent map. `consent_type` is one of `notifications` / `personalization` / `profile_vectors` / `cross_venue` (public wire contract, expandable server-side). HMAC + JWT auth; idempotent (re-setting the same value is a no-op). Wraps the `consent-set` Edge Function. Backed by `SetConsentRequestSchema` / `SetConsentResponseSchema` in `src/schemas/consent.ts`; grant + revoke coverage in `tests/methods.test.ts`.
+
+- `client.recommendations.get({ venue_id })` — personalized recommendations for a venue, with an `abo_eligibility: { enabled, reason }` block carried alongside the recommendation payload (`recommendation_id`, `recommendation_type`, `items[]`, `score`, `confidence`, `valid_until`, `explanation_token`). When recommendations aren't available for the caller, `items` is `[]` and the recommendation fields are `null` — an honest empty payload, not an error. `items` are opaque ranked entries (interpreted per `recommendation_type`) and `explanation_token` is an opaque server-issued token. HMAC + JWT auth; the user is JWT-derived. Wraps the `recommendations` Edge Function. Backed by `GetRecommendationsRequestSchema` / `GetRecommendationsResponseSchema` in `src/schemas/recommendations.ts`; eligible + empty-payload coverage in `tests/methods.test.ts`.
+
 ## v0.2.4 - documentation cleanup release
 
 Documentation + tooling cleanup, no behavior change in the SDK runtime. Validates the simplified `publish.yml` workflow (cluster #42) in isolation before any feature release. Specifically:

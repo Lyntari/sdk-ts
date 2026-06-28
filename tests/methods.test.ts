@@ -667,6 +667,212 @@ describe('events.managePhase (hmac+jwt mode, discriminated union)', () => {
   });
 });
 
+// === consent consumer EFs (hmac+jwt mode) ==================================
+
+describe('consent.get (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-consumer-1');
+  });
+
+  it('throws a clear error when accessToken is unset', async () => {
+    client.setAccessToken(null);
+    await expect(client.consent.get()).rejects.toThrow(/requires an access token/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('POSTs an empty body to /consent-get with _auth (jwt + signature), no Idempotency-Key', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          consent: {
+            personalization: { granted: true, granted_at: '2026-06-28T10:00:00.000Z', revoked_at: null },
+          },
+        },
+      }),
+    );
+
+    const result = await client.consent.get();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/consent-get`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    // empty body apart from the injected _auth block
+    expect(Object.keys(sentBody).sort()).toEqual(['_auth']);
+    expect(sentBody._auth.token).toBe('jwt-consumer-1');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // non-idempotent: no Idempotency-Key header
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeUndefined();
+
+    expect(result.consent.personalization?.granted).toBe(true);
+  });
+});
+
+describe('consent.set (hmac+jwt + idempotent)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-consumer-2');
+  });
+
+  it('POSTs a grant to /consent-set and auto-generates an Idempotency-Key', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          consent: {
+            personalization: { granted: true, granted_at: '2026-06-28T10:05:00.000Z', revoked_at: null },
+          },
+        },
+      }),
+    );
+
+    const result = await client.consent.set({ consent_type: 'personalization', granted: true });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/consent-set`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.consent_type).toBe('personalization');
+    expect(sentBody.granted).toBe(true);
+    expect(sentBody._auth.token).toBe('jwt-consumer-2');
+
+    // idempotent endpoint: transport injects a default Idempotency-Key
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeDefined();
+    expect(headers['Idempotency-Key']!.length).toBeGreaterThan(0);
+
+    expect(result.consent.personalization?.granted).toBe(true);
+  });
+
+  it('POSTs a one-tap revoke (granted: false) and reflects the revoked state', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          consent: {
+            personalization: { granted: false, granted_at: '2026-06-28T10:05:00.000Z', revoked_at: '2026-06-28T11:00:00.000Z' },
+          },
+        },
+      }),
+    );
+
+    const result = await client.consent.set({ consent_type: 'personalization', granted: false });
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.granted).toBe(false);
+    expect(result.consent.personalization?.granted).toBe(false);
+    expect(result.consent.personalization?.revoked_at).toBe('2026-06-28T11:00:00.000Z');
+  });
+});
+
+// === recommendations consumer EF (hmac+jwt mode) ===========================
+
+describe('recommendations.get (hmac+jwt mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-consumer-3');
+  });
+
+  it('POSTs venue_id to /recommendations and parses the empty-payload (ineligible) shape', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          recommendation_id: null,
+          user_id: null,
+          venue_id: '3d7d62b4-45ed-471c-93e9-4a01fe4825c1',
+          recommendation_type: null,
+          items: [],
+          score: null,
+          confidence: null,
+          valid_until: null,
+          explanation_token: null,
+          abo_eligibility: { enabled: false, reason: 'org_disabled' },
+        },
+      }),
+    );
+
+    const result = await client.recommendations.get({
+      venue_id: '3d7d62b4-45ed-471c-93e9-4a01fe4825c1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/recommendations`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.venue_id).toBe('3d7d62b4-45ed-471c-93e9-4a01fe4825c1');
+    expect(sentBody._auth.token).toBe('jwt-consumer-3');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // non-idempotent: no Idempotency-Key header
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeUndefined();
+
+    expect(result.items).toEqual([]);
+    expect(result.abo_eligibility.enabled).toBe(false);
+    expect(result.abo_eligibility.reason).toBe('org_disabled');
+  });
+
+  it('parses an eligible payload with opaque items + explanation token', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          recommendation_id: '9c5cf26a-7e1d-4f3a-8c91-7a0b1f5d6e22',
+          user_id: '7d42f058-b23e-4c33-804b-e78c01d9a443',
+          venue_id: '3d7d62b4-45ed-471c-93e9-4a01fe4825c1',
+          recommendation_type: 'concession',
+          items: [{ entity_id: 'opaque-1', rank: 1 }, { entity_id: 'opaque-2', rank: 2 }],
+          score: 0.82,
+          confidence: 0.61,
+          valid_until: '2026-06-28T23:59:59.000Z',
+          explanation_token: 'tok_opaque_abc123',
+          abo_eligibility: { enabled: true, reason: null },
+        },
+      }),
+    );
+
+    const result = await client.recommendations.get({
+      venue_id: '3d7d62b4-45ed-471c-93e9-4a01fe4825c1',
+    });
+
+    expect(result.items.length).toBe(2);
+    expect(result.recommendation_type).toBe('concession');
+    expect(result.explanation_token).toBe('tok_opaque_abc123');
+    expect(result.abo_eligibility.enabled).toBe(true);
+    expect(result.abo_eligibility.reason).toBeNull();
+  });
+});
+
 // === idempotency-key explicit override =====================================
 
 describe('idempotency-key explicit override', () => {
