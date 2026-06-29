@@ -2431,6 +2431,277 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /consent-get:
+    post:
+      operationId: consentGet
+      summary: POST consent-get
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: false
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consent:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        granted:
+                          type: boolean
+                        granted_at:
+                          type:
+                            - string
+                            - "null"
+                        revoked_at:
+                          type:
+                            - string
+                            - "null"
+                      required:
+                        - granted
+                        - granted_at
+                        - revoked_at
+                required:
+                  - consent
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /consent-set:
+    post:
+      operationId: consentSet
+      summary: POST consent-set
+      description: "Auth: `hmac+jwt`. Idempotency-Key honored (24h TTL). Body is signed via HMAC-SHA256
+        over the canonical string `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature
+        in `_auth.signature`. The SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Optional UUID. SDK transport auto-generates a fresh one per call; pass an explicit key
+            to coordinate idempotency across multiple calls. 24h server-side TTL.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                consent_type:
+                  type: string
+                  enum:
+                    - notifications
+                    - personalization
+                    - profile_vectors
+                    - cross_venue
+                granted:
+                  type: boolean
+              required:
+                - consent_type
+                - granted
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  consent:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        granted:
+                          type: boolean
+                        granted_at:
+                          type:
+                            - string
+                            - "null"
+                        revoked_at:
+                          type:
+                            - string
+                            - "null"
+                      required:
+                        - granted
+                        - granted_at
+                        - revoked_at
+                required:
+                  - consent
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Idempotency-Key conflict — same key was previously used with a different request body.
+            `error.code` is `idempotency_key_conflict` with `details.existing_request_hash_prefix`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /recommendations:
+    post:
+      operationId: recommendations
+      summary: POST recommendations
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                venue_id:
+                  type: string
+                  format: uuid
+              required:
+                - venue_id
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendation_id:
+                    type:
+                      - string
+                      - "null"
+                    format: uuid
+                  user_id:
+                    type:
+                      - string
+                      - "null"
+                    format: uuid
+                  venue_id:
+                    type: string
+                    format: uuid
+                  recommendation_type:
+                    type:
+                      - string
+                      - "null"
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: {}
+                  score:
+                    type:
+                      - number
+                      - "null"
+                  confidence:
+                    type:
+                      - number
+                      - "null"
+                  valid_until:
+                    type:
+                      - string
+                      - "null"
+                  explanation_token:
+                    type:
+                      - string
+                      - "null"
+                  abo_eligibility:
+                    type: object
+                    properties:
+                      enabled:
+                        type: boolean
+                      reason:
+                        type:
+                          - string
+                          - "null"
+                    required:
+                      - enabled
+                      - reason
+                required:
+                  - recommendation_id
+                  - user_id
+                  - venue_id
+                  - recommendation_type
+                  - items
+                  - score
+                  - confidence
+                  - valid_until
+                  - explanation_token
+                  - abo_eligibility
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus

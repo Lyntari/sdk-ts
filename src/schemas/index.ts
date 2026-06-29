@@ -43,6 +43,8 @@ import * as Notifications from './notifications.js';
 import * as Reads from './reads.js';
 import * as Insights from './insights.js';
 import * as Events from './events.js';
+import * as Consent from './consent.js';
+import * as Recommendations from './recommendations.js';
 
 // === Re-exports ===========================================================
 
@@ -54,6 +56,8 @@ export * from './notifications.js';
 export * from './reads.js';
 export * from './insights.js';
 export * from './events.js';
+export * from './consent.js';
+export * from './recommendations.js';
 
 // === Registry types =======================================================
 
@@ -333,6 +337,35 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: false,
     requestSchema: Events.ManageEventPhasesRequestSchema,
     responseSchema: Events.ManageEventPhasesResponseSchema,
+  },
+
+  // --- consent + recommendations (3; consumer-facing, cluster #65) -------
+  {
+    slug: 'consent-get',
+    method: 'POST',
+    path: path('consent-get'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Consent.GetConsentRequestSchema,
+    responseSchema: Consent.GetConsentResponseSchema,
+  },
+  {
+    slug: 'consent-set',
+    method: 'POST',
+    path: path('consent-set'),
+    auth: 'hmac+jwt',
+    idempotent: true,
+    requestSchema: Consent.SetConsentRequestSchema,
+    responseSchema: Consent.SetConsentResponseSchema,
+  },
+  {
+    slug: 'recommendations',
+    method: 'POST',
+    path: path('recommendations'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Recommendations.GetRecommendationsRequestSchema,
+    responseSchema: Recommendations.GetRecommendationsResponseSchema,
   },
 
   // --- reads (8) ---------------------------------------------------------
