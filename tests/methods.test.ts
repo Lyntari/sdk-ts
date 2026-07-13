@@ -873,6 +873,72 @@ describe('recommendations.get (hmac+jwt mode)', () => {
   });
 });
 
+// === privacy / DSR consumer EF (hmac+jwt + idempotent) =====================
+
+describe('privacy.submitDsr (hmac+jwt + idempotent)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('jwt-consumer-4');
+  });
+
+  it('POSTs a deletion request to /dsr, auto-generates an Idempotency-Key, and parses the request record', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: {
+          dsr: {
+            dsr_id: 'a3f0c8e2-1d44-4b91-9c7e-8f2a6b0d1e33',
+            request_type: 'erasure',
+            result: { status: 'completed' },
+          },
+        },
+      }),
+    );
+
+    const result = await client.privacy.submitDsr({ request_type: 'deletion' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/dsr`);
+    expect(init?.method).toBe('POST');
+
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.request_type).toBe('deletion');
+    expect(sentBody._auth.token).toBe('jwt-consumer-4');
+    expect(typeof sentBody._auth.signature).toBe('string');
+
+    // idempotent endpoint: transport injects a default Idempotency-Key
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    expect(headers['Idempotency-Key']).toBeDefined();
+    expect(headers['Idempotency-Key']!.length).toBeGreaterThan(0);
+
+    expect(result.dsr.dsr_id).toBe('a3f0c8e2-1d44-4b91-9c7e-8f2a6b0d1e33');
+    expect(result.dsr.request_type).toBe('erasure');
+  });
+
+  it('accepts the access and portability verbs', async () => {
+    fetchMock.mockResolvedValue(
+      mockResponse({
+        ok: true,
+        status: 200,
+        body: { dsr: { dsr_id: 'd1', request_type: 'access', result: {} } },
+      }),
+    );
+
+    await client.privacy.submitDsr({ request_type: 'access' });
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]?.body as string).request_type).toBe('access');
+
+    await client.privacy.submitDsr({ request_type: 'portability' });
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]?.body as string).request_type).toBe('portability');
+  });
+});
+
 // === idempotency-key explicit override =====================================
 
 describe('idempotency-key explicit override', () => {

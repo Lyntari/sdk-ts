@@ -55,6 +55,7 @@ import type {
 } from './auth/types.js';
 import { createAuthMethods, type AuthMethods } from './methods/auth.js';
 import { createConsentMethods, type ConsentMethods } from './methods/consent.js';
+import { createPrivacyMethods, type PrivacyMethods } from './methods/privacy.js';
 import { createEventsMethods, type EventsMethods } from './methods/events.js';
 import { createInsightsMethods, type InsightsMethods } from './methods/insights.js';
 import { createLocationMethods, type LocationMethods } from './methods/location.js';
@@ -161,6 +162,8 @@ export interface LyntariClient {
   readonly consent: ConsentMethods;
   /** Recommendations-flow methods: get personalized ABO recommendations for a venue. */
   readonly recommendations: RecommendationsMethods;
+  /** Privacy methods: submit a data-subject request (access / deletion / portability). */
+  readonly privacy: PrivacyMethods;
   /** OneSignal subscription save orchestration. `start` / `stop` are `undefined` in caller-managed mode (no auth lifecycle). */
   readonly pushSubscriptions: Partial<PushSubscriptionsSurface>;
 
@@ -259,6 +262,7 @@ export function createLyntariClient(config: CreateClientConfig): LyntariClient {
     reads: createReadsMethods(frozenConfig, state),
     consent: createConsentMethods(frozenConfig, state),
     recommendations: createRecommendationsMethods(frozenConfig, state),
+    privacy: createPrivacyMethods(frozenConfig, state),
     pushSubscriptions: pushSubscriptionsSurface,
     setAccessToken: (token) => {
       state.accessToken = token;
@@ -279,6 +283,7 @@ export type { NotificationsMethods } from './methods/notifications.js';
 export type { ReadsMethods } from './methods/reads.js';
 export type { ConsentMethods } from './methods/consent.js';
 export type { RecommendationsMethods } from './methods/recommendations.js';
+export type { PrivacyMethods } from './methods/privacy.js';
 
 // Auth lifecycle + storage surface
 export type { TokenStorage } from './storage/types.js';
