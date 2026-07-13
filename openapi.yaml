@@ -2702,6 +2702,87 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /dsr:
+    post:
+      operationId: dsr
+      summary: POST dsr
+      description: "Auth: `hmac+jwt`. Idempotency-Key honored (24h TTL). Body is signed via HMAC-SHA256
+        over the canonical string `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature
+        in `_auth.signature`. The SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Optional UUID. SDK transport auto-generates a fresh one per call; pass an explicit key
+            to coordinate idempotency across multiple calls. 24h server-side TTL.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                request_type:
+                  type: string
+                  enum:
+                    - access
+                    - deletion
+                    - portability
+              required:
+                - request_type
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dsr:
+                    type: object
+                    properties:
+                      dsr_id:
+                        type: string
+                      request_type:
+                        type: string
+                      result: {}
+                    required:
+                      - dsr_id
+                      - request_type
+                required:
+                  - dsr
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "409":
+          description: Idempotency-Key conflict — same key was previously used with a different request body.
+            `error.code` is `idempotency_key_conflict` with `details.existing_request_hash_prefix`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus

@@ -45,6 +45,7 @@ import * as Insights from './insights.js';
 import * as Events from './events.js';
 import * as Consent from './consent.js';
 import * as Recommendations from './recommendations.js';
+import * as Dsr from './dsr.js';
 
 // === Re-exports ===========================================================
 
@@ -58,6 +59,7 @@ export * from './insights.js';
 export * from './events.js';
 export * from './consent.js';
 export * from './recommendations.js';
+export * from './dsr.js';
 
 // === Registry types =======================================================
 
@@ -366,6 +368,17 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: false,
     requestSchema: Recommendations.GetRecommendationsRequestSchema,
     responseSchema: Recommendations.GetRecommendationsResponseSchema,
+  },
+
+  // --- privacy / DSR (1; consumer-facing, cluster #79) -------------------
+  {
+    slug: 'dsr',
+    method: 'POST',
+    path: path('dsr'),
+    auth: 'hmac+jwt',
+    idempotent: true,
+    requestSchema: Dsr.SubmitDsrRequestSchema,
+    responseSchema: Dsr.SubmitDsrResponseSchema,
   },
 
   // --- reads (8) ---------------------------------------------------------
