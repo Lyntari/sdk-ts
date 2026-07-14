@@ -22,6 +22,8 @@ info:
 servers:
   - url: https://cylxaiizkxfpohcdgeui.supabase.co/functions/v1
     description: Production
+  - url: https://bqabxkymqrfyqnvucpfk.supabase.co/functions/v1
+    description: Sandbox (development) — for integration testing against non-production data.
 tags:
   - name: auth
     description: Authentication, signup, password reset, account lifecycle.
@@ -139,14 +141,14 @@ components:
     ResetPasswordRequest:
       type: object
       properties:
-        email:
+        token:
           type: string
-          format: email
+          minLength: 16
         new_password:
           type: string
           minLength: 8
       required:
-        - email
+        - token
         - new_password
     DeleteAccountRequest:
       type: object
@@ -428,10 +430,10 @@ components:
     ResetPasswordResponse:
       type: object
       properties:
-        message:
-          type: string
+        success:
+          type: boolean
       required:
-        - message
+        - success
     DeleteAccountResponse:
       type: object
       properties:
@@ -1116,6 +1118,114 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResetPasswordResponse"
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /request-password-reset:
+    post:
+      operationId: requestPasswordReset
+      summary: POST request-password-reset
+      description: "Auth: `hmac`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required:
+                - email
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /change-password:
+    post:
+      operationId: changePassword
+      summary: POST change-password
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  type: string
+                  minLength: 8
+              required:
+                - new_password
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
         "400":
           description: "Validation failed — body did not match the request schema. `error.code` is
             `validation_failed` with `details: { field, issues }`."
@@ -2773,6 +2883,340 @@ paths:
         "409":
           description: Idempotency-Key conflict — same key was previously used with a different request body.
             `error.code` is `idempotency_key_conflict` with `details.existing_request_hash_prefix`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /operator-insights:
+    post:
+      operationId: operatorInsights
+      summary: POST operator-insights
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_org:
+                  type: string
+                  format: uuid
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insights:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type:
+                            - string
+                            - "null"
+                        body:
+                          type:
+                            - string
+                            - "null"
+                        urgency:
+                          type:
+                            - string
+                            - "null"
+                        confidence:
+                          type:
+                            - number
+                            - "null"
+                        venue_id:
+                          type:
+                            - string
+                            - "null"
+                        venue_name:
+                          type:
+                            - string
+                            - "null"
+                        valid_until:
+                          type:
+                            - string
+                            - "null"
+                        lifecycle_state:
+                          type:
+                            - string
+                            - "null"
+                        created_at:
+                          type:
+                            - string
+                            - "null"
+                      required:
+                        - id
+                        - title
+                        - body
+                        - urgency
+                        - confidence
+                        - venue_id
+                        - venue_name
+                        - valid_until
+                        - lifecycle_state
+                        - created_at
+                  org_id:
+                    type: string
+                required:
+                  - insights
+                  - org_id
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /operator-recommendations:
+    post:
+      operationId: operatorRecommendations
+      summary: POST operator-recommendations
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_org:
+                  type: string
+                  format: uuid
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        recommendation_id:
+                          type: string
+                        venue_id:
+                          type:
+                            - string
+                            - "null"
+                        venue_name:
+                          type:
+                            - string
+                            - "null"
+                        from_zone_name:
+                          type:
+                            - string
+                            - "null"
+                        to_zone_name:
+                          type:
+                            - string
+                            - "null"
+                        role_type:
+                          type:
+                            - string
+                            - "null"
+                        staff_count_to_move:
+                          type:
+                            - number
+                            - "null"
+                        confidence:
+                          type:
+                            - number
+                            - "null"
+                        urgency:
+                          type:
+                            - string
+                            - "null"
+                        valid_until:
+                          type:
+                            - string
+                            - "null"
+                        status:
+                          type:
+                            - string
+                            - "null"
+                        created_at:
+                          type:
+                            - string
+                            - "null"
+                      required:
+                        - recommendation_id
+                        - venue_id
+                        - venue_name
+                        - from_zone_name
+                        - to_zone_name
+                        - role_type
+                        - staff_count_to_move
+                        - confidence
+                        - urgency
+                        - valid_until
+                        - status
+                        - created_at
+                  org_id:
+                    type: string
+                required:
+                  - recommendations
+                  - org_id
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /manage-api-keys:
+    post:
+      operationId: manageApiKeys
+      summary: POST manage-api-keys
+      description: "Auth: `hmac+jwt`. Body is signed via HMAC-SHA256 over the canonical string
+        `timestamp\\nmethod\\npath\\nquery\\nbodyHash` with the signature in `_auth.signature`. The
+        SDK transport injects `_auth` automatically."
+      tags:
+        - misc
+      security:
+        - HmacJwtBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - issue
+                    label:
+                      type: string
+                    scopes:
+                      type: array
+                      items:
+                        type: string
+                    expires_at:
+                      type: string
+                      format: date-time
+                  required:
+                    - action
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - rotate
+                    key_id:
+                      type: string
+                  required:
+                    - action
+                    - key_id
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - revoke
+                    key_id:
+                      type: string
+                  required:
+                    - action
+                    - key_id
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      api_key:
+                        type: string
+                      key_prefix:
+                        type: string
+                      org_id:
+                        type: string
+                      scopes:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                      - id
+                      - api_key
+                      - key_prefix
+                      - org_id
+                      - scopes
+                  revoked:
+                    type: boolean
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
           content:
             application/json:
               schema:

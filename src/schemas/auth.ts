@@ -182,25 +182,63 @@ export const AuthLogoutResponseSchema = z.object({
 export type AuthLogoutRequest = z.infer<typeof AuthLogoutRequestSchema>;
 export type AuthLogoutResponse = z.infer<typeof AuthLogoutResponseSchema>;
 
-// === reset-password =======================================================
+// === reset-password (token flow — cluster #89 Backend-008) ================
 
 /**
- * Reset password request. Server enforces length (min 8) + common-password
- * blocklist via `PasswordSchema`. Schema mirrors the rules so callers can
- * fail fast in the UI; widening rules should land in `PasswordSchema` so
- * signup and reset stay in sync.
+ * Reset a password with a single-use, expiring token obtained via
+ * `request-password-reset` and delivered out-of-band. Replaces the pre-#89
+ * HMAC-only `{email, new_password}` shape, which let any holder of the shared
+ * API key set a new password for any account. `new_password` follows
+ * `PasswordSchema` (min length + common-password blocklist).
  */
 export const ResetPasswordRequestSchema = z.object({
-  email: EmailSchema,
+  token: z.string().min(16),
   new_password: PasswordSchema,
 });
 
 export const ResetPasswordResponseSchema = z.object({
-  message: z.string(),
+  success: z.boolean(),
 });
 
 export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
 export type ResetPasswordResponse = z.infer<typeof ResetPasswordResponseSchema>;
+
+// === request-password-reset (cluster #89) =================================
+
+/**
+ * Begin the forgot-password flow. Returns the same 200 shape whether or not the
+ * email exists (no account enumeration); when it exists, a single-use token is
+ * delivered out-of-band.
+ */
+export const RequestPasswordResetRequestSchema = z.object({
+  email: EmailSchema,
+});
+
+export const RequestPasswordResetResponseSchema = z.object({
+  message: z.string(),
+});
+
+export type RequestPasswordResetRequest = z.infer<typeof RequestPasswordResetRequestSchema>;
+export type RequestPasswordResetResponse = z.infer<typeof RequestPasswordResetResponseSchema>;
+
+// === change-password (authenticated — cluster #89) ========================
+
+/**
+ * Change the authenticated user's password. HMAC + JWT — the user is derived
+ * from the JWT `sub`, so a caller can only change their OWN password. This is
+ * the session-JWT factor that closes the shared-secret takeover for logged-in
+ * users. `new_password` follows `PasswordSchema`.
+ */
+export const ChangePasswordRequestSchema = z.object({
+  new_password: PasswordSchema,
+});
+
+export const ChangePasswordResponseSchema = z.object({
+  success: z.boolean(),
+});
+
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
+export type ChangePasswordResponse = z.infer<typeof ChangePasswordResponseSchema>;
 
 // === delete-account =======================================================
 

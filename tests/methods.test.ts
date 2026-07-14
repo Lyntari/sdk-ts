@@ -939,6 +939,105 @@ describe('privacy.submitDsr (hmac+jwt + idempotent)', () => {
   });
 });
 
+// === operator S2S surface (cluster #89) ====================================
+
+describe('operator.insights (partner API-key mode)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs to /operator-insights with the partner key in _auth.apiKey (no HMAC/JWT)', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { insights: [{ id: 'i1', title: 'x', body: null, urgency: 'high', confidence: 0.9, venue_id: 'v1', venue_name: 'V', valid_until: null, lifecycle_state: 'active', created_at: null }], org_id: 'org-a' } }),
+    );
+
+    const result = await client.operator.insights('lyn_partnerkey', { limit: 5 });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-insights`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody._auth.signature).toBeUndefined(); // no HMAC on the operator read path
+    expect(sentBody.limit).toBe(5);
+    expect(result.insights[0]!.id).toBe('i1');
+    expect(result.org_id).toBe('org-a');
+  });
+});
+
+describe('operator.manageApiKeys (hmac+jwt)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+    client.setAccessToken('operator-jwt');
+  });
+
+  it('issues a key: POSTs the discriminated union to /manage-api-keys with the operator JWT', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { key: { id: 'k1', api_key: 'lyn_new', key_prefix: 'lyn_new12345', org_id: 'org-a', scopes: ['operator:insights'] } } }),
+    );
+
+    const result = await client.operator.manageApiKeys({ action: 'issue', label: 'partner', scopes: ['operator:insights'] });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/manage-api-keys`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('issue');
+    expect(sentBody._auth.token).toBe('operator-jwt');
+    expect(result.key?.id).toBe('k1');
+  });
+});
+
+// === auth hardening (cluster #89 Backend-008) ==============================
+
+describe('auth password hardening (change / request-reset / reset-token)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('changePassword POSTs to /change-password with the JWT (session factor)', async () => {
+    client.setAccessToken('user-jwt');
+    fetchMock.mockResolvedValueOnce(mockResponse({ ok: true, status: 200, body: { success: true } }));
+    const r = await client.auth.changePassword({ new_password: 'a-strong-passphrase' });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/change-password`);
+    expect(JSON.parse(init?.body as string)._auth.token).toBe('user-jwt');
+    expect(r.success).toBe(true);
+  });
+
+  it('requestPasswordReset POSTs an email to /request-password-reset (HMAC only)', async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse({ ok: true, status: 200, body: { message: 'ok' } }));
+    await client.auth.requestPasswordReset({ email: 'user@example.com' });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/request-password-reset`);
+    const b = JSON.parse(init?.body as string);
+    expect(b.email).toBe('user@example.com');
+    expect(b._auth.token).toBeUndefined(); // HMAC-only, no JWT
+  });
+
+  it('resetPassword sends the token (not email) to /reset-password', async () => {
+    fetchMock.mockResolvedValueOnce(mockResponse({ ok: true, status: 200, body: { success: true } }));
+    const r = await client.auth.resetPassword({ token: 'a'.repeat(64), new_password: 'a-strong-passphrase' });
+    const b = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(b.token).toBe('a'.repeat(64));
+    expect(b.email).toBeUndefined(); // the pre-#89 email field is gone
+    expect(r.success).toBe(true);
+  });
+});
+
 // === idempotency-key explicit override =====================================
 
 describe('idempotency-key explicit override', () => {

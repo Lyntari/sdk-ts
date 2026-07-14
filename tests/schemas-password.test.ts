@@ -101,11 +101,13 @@ describe('ConsumerSignupRequestSchema — password rules', () => {
   });
 });
 
-describe('ResetPasswordRequestSchema — same rules apply', () => {
-  it('accepts a long unique new_password', () => {
+describe('ResetPasswordRequestSchema (cluster #89 token flow) — same password rules apply', () => {
+  const VALID_TOKEN = 'a'.repeat(64); // sha-hex reset token (min 16)
+
+  it('accepts a valid token + long unique new_password', () => {
     expect(() =>
       ResetPasswordRequestSchema.parse({
-        email: VALID_EMAIL,
+        token: VALID_TOKEN,
         new_password: VALID_PASSWORD,
       }),
     ).not.toThrow();
@@ -113,7 +115,7 @@ describe('ResetPasswordRequestSchema — same rules apply', () => {
 
   it('rejects a blocklisted new_password', () => {
     const result = ResetPasswordRequestSchema.safeParse({
-      email: VALID_EMAIL,
+      token: VALID_TOKEN,
       new_password: 'qwerty123',
     });
     expect(result.success).toBe(false);
@@ -121,6 +123,12 @@ describe('ResetPasswordRequestSchema — same rules apply', () => {
       expect(result.error.issues[0]?.path).toEqual(['new_password']);
       expect(result.error.issues[0]?.message).toMatch(/too common/);
     }
+  });
+
+  it('rejects a too-short token', () => {
+    const result = ResetPasswordRequestSchema.safeParse({ token: 'short', new_password: VALID_PASSWORD });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]?.path).toEqual(['token']);
   });
 });
 
