@@ -1029,6 +1029,38 @@ describe('operator.sensorCoverage (partner API-key mode; cluster #83)', () => {
   });
 });
 
+describe('operator.externalFeedCoverage (partner API-key mode; cluster #84)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs to /operator-external-feed-coverage with the partner key and returns per-feed coverage', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { coverage: [
+        { feed_type: 'screening', venue_id: 'v1', zone_id: 'z1', active: true, coverage_confidence: 0.95, label: 'NE screening', last_signal_at: '2026-07-14T14:00:00.000Z', is_stale: false },
+        { feed_type: 'fire', venue_id: 'v1', zone_id: null, active: true, coverage_confidence: 1.0, label: 'Fire panel', last_signal_at: null, is_stale: true },
+      ], org_id: 'org-a' } }),
+    );
+
+    const result = await client.operator.externalFeedCoverage('lyn_partnerkey');
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-external-feed-coverage`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody._auth.signature).toBeUndefined(); // no HMAC on the operator read path
+    expect(result.coverage[0]!.feed_type).toBe('screening');
+    expect(result.coverage[0]!.is_stale).toBe(false);
+    expect(result.coverage[1]!.is_stale).toBe(true); // no signal yet
+    expect(result.org_id).toBe('org-a');
+  });
+});
+
 describe('operator.manageApiKeys (hmac+jwt)', () => {
   let fetchMock: MockedFunction<typeof fetch>;
   let client: LyntariClient;
