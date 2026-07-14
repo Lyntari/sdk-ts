@@ -429,6 +429,15 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     requestSchema: Operator.ManageApiKeyRequestSchema,
     responseSchema: Operator.ManageApiKeyResponseSchema,
   },
+  {
+    slug: 'operator-audit-log',
+    method: 'POST',
+    path: path('operator-audit-log'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorAuditLogRequestSchema,
+    responseSchema: Operator.OperatorAuditLogResponseSchema,
+  },
 
   // --- reads (8) ---------------------------------------------------------
   {

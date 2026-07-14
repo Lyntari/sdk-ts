@@ -20,6 +20,8 @@ import type {
   OperatorReadRequest,
   OperatorInsightsResponse,
   OperatorRecommendationsResponse,
+  OperatorAuditLogRequest,
+  OperatorAuditLogResponse,
 } from '../schemas/index.js';
 import { postWithHMAC } from '../transport/post.js';
 import { postWithApiKey } from '../transport/postApiKey.js';
@@ -46,6 +48,14 @@ export interface OperatorMethods {
    * Authenticated by a partner API key (first arg).
    */
   recommendations(partnerApiKey: string, input?: OperatorReadRequest): Promise<OperatorRecommendationsResponse>;
+
+  /**
+   * `operator-audit-log` — the org's immutable security-event audit log (SOC 2
+   * evidence): auth, access, config, DSR, api-key, and isolation events, each
+   * org-attributed and tamper-evident. Authenticated by a partner API key (first
+   * arg); a `target_org` that isn't the key's own org is rejected.
+   */
+  auditLog(partnerApiKey: string, input?: OperatorAuditLogRequest): Promise<OperatorAuditLogResponse>;
 }
 
 export function createOperatorMethods(
@@ -76,6 +86,14 @@ export function createOperatorMethods(
       postWithApiKey<OperatorRecommendationsResponse>({
         baseUrl: config.baseUrl,
         slug: 'operator-recommendations',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    auditLog: async (partnerApiKey, input = {}) =>
+      postWithApiKey<OperatorAuditLogResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-audit-log',
         apiKey: partnerApiKey,
         body: input,
       }),

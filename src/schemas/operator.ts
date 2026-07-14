@@ -92,6 +92,38 @@ export const OperatorRecommendationsResponseSchema = z.object({
   org_id: z.string(),
 });
 
+// === audit log (partner API key; cluster #80, §4.7) =======================
+
+export const OperatorAuditLogRequestSchema = z.object({
+  /** Optional; must equal the key's own org — a different org is rejected. */
+  target_org: z.string().uuid().optional(),
+  /** Filter by category: `auth` | `access` | `config` | `dsr` | `api_key` | `isolation`. */
+  category: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  limit: z.number().int().min(1).max(1000).optional(),
+});
+
+export const OperatorAuditEventSchema = z.object({
+  id: z.number(),
+  occurred_at: z.string(),
+  actor_type: z.string().nullable(),
+  actor_id: z.string().nullable(),
+  event_category: z.string(),
+  event_type: z.string(),
+  target_type: z.string().nullable(),
+  target_id: z.string().nullable(),
+  outcome: z.string(),
+  request_id: z.string().nullable(),
+  /** Event-specific structured detail (opaque; shape depends on `event_type`). */
+  detail: z.unknown(),
+});
+
+export const OperatorAuditLogResponseSchema = z.object({
+  events: z.array(OperatorAuditEventSchema),
+  org_id: z.string(),
+});
+
 export type IssuedApiKey = z.infer<typeof IssuedApiKeySchema>;
 export type ManageApiKeyRequest = z.infer<typeof ManageApiKeyRequestSchema>;
 export type ManageApiKeyResponse = z.infer<typeof ManageApiKeyResponseSchema>;
@@ -100,3 +132,6 @@ export type OperatorInsight = z.infer<typeof OperatorInsightSchema>;
 export type OperatorInsightsResponse = z.infer<typeof OperatorInsightsResponseSchema>;
 export type OperatorRecommendation = z.infer<typeof OperatorRecommendationSchema>;
 export type OperatorRecommendationsResponse = z.infer<typeof OperatorRecommendationsResponseSchema>;
+export type OperatorAuditLogRequest = z.infer<typeof OperatorAuditLogRequestSchema>;
+export type OperatorAuditEvent = z.infer<typeof OperatorAuditEventSchema>;
+export type OperatorAuditLogResponse = z.infer<typeof OperatorAuditLogResponseSchema>;
