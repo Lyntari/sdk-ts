@@ -997,6 +997,38 @@ describe('operator.auditLog (partner API-key mode; cluster #80)', () => {
   });
 });
 
+describe('operator.sensorCoverage (partner API-key mode; cluster #83)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs to /operator-sensor-coverage with the partner key and returns per-source coverage', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { coverage: [
+        { source_type: 'turnstile', venue_id: 'v1', zone_id: 'z1', active: true, coverage_confidence: 0.95, label: 'NE turnstile', last_reading_at: '2026-07-14T14:00:00.000Z', is_stale: false },
+        { source_type: 'wifi_probe', venue_id: 'v1', zone_id: null, active: true, coverage_confidence: 0.6, label: 'WiFi APs', last_reading_at: null, is_stale: true },
+      ], org_id: 'org-a' } }),
+    );
+
+    const result = await client.operator.sensorCoverage('lyn_partnerkey');
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-sensor-coverage`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody._auth.signature).toBeUndefined(); // no HMAC on the operator read path
+    expect(result.coverage[0]!.source_type).toBe('turnstile');
+    expect(result.coverage[0]!.is_stale).toBe(false);
+    expect(result.coverage[1]!.is_stale).toBe(true); // no feed yet
+    expect(result.org_id).toBe('org-a');
+  });
+});
+
 describe('operator.manageApiKeys (hmac+jwt)', () => {
   let fetchMock: MockedFunction<typeof fetch>;
   let client: LyntariClient;

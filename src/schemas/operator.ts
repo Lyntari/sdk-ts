@@ -124,6 +124,33 @@ export const OperatorAuditLogResponseSchema = z.object({
   org_id: z.string(),
 });
 
+// === sensor coverage (partner API key; cluster #83, §4.10) ================
+
+export const OperatorSensorCoverageRequestSchema = z.object({
+  /** Optional; must equal the key's own org — a different org is rejected. */
+  target_org: z.string().uuid().optional(),
+});
+
+export const OperatorSensorSourceSchema = z.object({
+  /** `ticket_scan` | `turnstile` | `access_control` | `wifi_probe` | `app_signal`. */
+  source_type: z.string(),
+  venue_id: z.string().nullable(),
+  /** Zone this source covers; null for a venue-wide source. */
+  zone_id: z.string().nullable(),
+  active: z.boolean(),
+  coverage_confidence: z.number().nullable(),
+  label: z.string().nullable(),
+  /** ISO timestamp of the freshest reading for this source, or null if none yet. */
+  last_reading_at: z.string().nullable(),
+  /** True when no reading has landed within the freshness window (or ever). */
+  is_stale: z.boolean(),
+});
+
+export const OperatorSensorCoverageResponseSchema = z.object({
+  coverage: z.array(OperatorSensorSourceSchema),
+  org_id: z.string(),
+});
+
 export type IssuedApiKey = z.infer<typeof IssuedApiKeySchema>;
 export type ManageApiKeyRequest = z.infer<typeof ManageApiKeyRequestSchema>;
 export type ManageApiKeyResponse = z.infer<typeof ManageApiKeyResponseSchema>;
@@ -135,3 +162,6 @@ export type OperatorRecommendationsResponse = z.infer<typeof OperatorRecommendat
 export type OperatorAuditLogRequest = z.infer<typeof OperatorAuditLogRequestSchema>;
 export type OperatorAuditEvent = z.infer<typeof OperatorAuditEventSchema>;
 export type OperatorAuditLogResponse = z.infer<typeof OperatorAuditLogResponseSchema>;
+export type OperatorSensorCoverageRequest = z.infer<typeof OperatorSensorCoverageRequestSchema>;
+export type OperatorSensorSource = z.infer<typeof OperatorSensorSourceSchema>;
+export type OperatorSensorCoverageResponse = z.infer<typeof OperatorSensorCoverageResponseSchema>;

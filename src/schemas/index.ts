@@ -438,6 +438,15 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     requestSchema: Operator.OperatorAuditLogRequestSchema,
     responseSchema: Operator.OperatorAuditLogResponseSchema,
   },
+  {
+    slug: 'operator-sensor-coverage',
+    method: 'POST',
+    path: path('operator-sensor-coverage'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorSensorCoverageRequestSchema,
+    responseSchema: Operator.OperatorSensorCoverageResponseSchema,
+  },
 
   // --- reads (8) ---------------------------------------------------------
   {
