@@ -447,6 +447,15 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     requestSchema: Operator.OperatorSensorCoverageRequestSchema,
     responseSchema: Operator.OperatorSensorCoverageResponseSchema,
   },
+  {
+    slug: 'operator-external-feed-coverage',
+    method: 'POST',
+    path: path('operator-external-feed-coverage'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorExternalFeedCoverageRequestSchema,
+    responseSchema: Operator.OperatorExternalFeedCoverageResponseSchema,
+  },
 
   // --- reads (8) ---------------------------------------------------------
   {

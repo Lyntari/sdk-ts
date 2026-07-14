@@ -151,6 +151,33 @@ export const OperatorSensorCoverageResponseSchema = z.object({
   org_id: z.string(),
 });
 
+// === external-feed coverage (partner API key; cluster #84, §4.11) ==========
+
+export const OperatorExternalFeedCoverageRequestSchema = z.object({
+  /** Optional; must equal the key's own org — a different org is rejected. */
+  target_org: z.string().uuid().optional(),
+});
+
+export const OperatorExternalFeedSchema = z.object({
+  /** `screening` | `acoustic` | `drone` | `fire` | `medical` | `camera_cv`. */
+  feed_type: z.string(),
+  venue_id: z.string().nullable(),
+  /** Zone this feed covers; null for a venue-wide feed. */
+  zone_id: z.string().nullable(),
+  active: z.boolean(),
+  coverage_confidence: z.number().nullable(),
+  label: z.string().nullable(),
+  /** ISO timestamp of the freshest signal from this feed, or null if none yet. */
+  last_signal_at: z.string().nullable(),
+  /** True when no signal has landed within the freshness window (or ever). */
+  is_stale: z.boolean(),
+});
+
+export const OperatorExternalFeedCoverageResponseSchema = z.object({
+  coverage: z.array(OperatorExternalFeedSchema),
+  org_id: z.string(),
+});
+
 export type IssuedApiKey = z.infer<typeof IssuedApiKeySchema>;
 export type ManageApiKeyRequest = z.infer<typeof ManageApiKeyRequestSchema>;
 export type ManageApiKeyResponse = z.infer<typeof ManageApiKeyResponseSchema>;
@@ -165,3 +192,6 @@ export type OperatorAuditLogResponse = z.infer<typeof OperatorAuditLogResponseSc
 export type OperatorSensorCoverageRequest = z.infer<typeof OperatorSensorCoverageRequestSchema>;
 export type OperatorSensorSource = z.infer<typeof OperatorSensorSourceSchema>;
 export type OperatorSensorCoverageResponse = z.infer<typeof OperatorSensorCoverageResponseSchema>;
+export type OperatorExternalFeedCoverageRequest = z.infer<typeof OperatorExternalFeedCoverageRequestSchema>;
+export type OperatorExternalFeed = z.infer<typeof OperatorExternalFeedSchema>;
+export type OperatorExternalFeedCoverageResponse = z.infer<typeof OperatorExternalFeedCoverageResponseSchema>;

@@ -24,6 +24,8 @@ import type {
   OperatorAuditLogResponse,
   OperatorSensorCoverageRequest,
   OperatorSensorCoverageResponse,
+  OperatorExternalFeedCoverageRequest,
+  OperatorExternalFeedCoverageResponse,
 } from '../schemas/index.js';
 import { postWithHMAC } from '../transport/post.js';
 import { postWithApiKey } from '../transport/postApiKey.js';
@@ -67,6 +69,15 @@ export interface OperatorMethods {
    * arg); a `target_org` that isn't the key's own org is rejected.
    */
   sensorCoverage(partnerApiKey: string, input?: OperatorSensorCoverageRequest): Promise<OperatorSensorCoverageResponse>;
+
+  /**
+   * `operator-external-feed-coverage` — the org's Tier-2 external-detector feed
+   * coverage: which feeds (screening / acoustic / drone / fire / medical /
+   * camera-CV) cover which zones, their coverage confidence, and each feed's
+   * freshness (`last_signal_at` + `is_stale`). Authenticated by a partner API key
+   * (first arg); a `target_org` that isn't the key's own org is rejected.
+   */
+  externalFeedCoverage(partnerApiKey: string, input?: OperatorExternalFeedCoverageRequest): Promise<OperatorExternalFeedCoverageResponse>;
 }
 
 export function createOperatorMethods(
@@ -113,6 +124,14 @@ export function createOperatorMethods(
       postWithApiKey<OperatorSensorCoverageResponse>({
         baseUrl: config.baseUrl,
         slug: 'operator-sensor-coverage',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    externalFeedCoverage: async (partnerApiKey, input = {}) =>
+      postWithApiKey<OperatorExternalFeedCoverageResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-external-feed-coverage',
         apiKey: partnerApiKey,
         body: input,
       }),

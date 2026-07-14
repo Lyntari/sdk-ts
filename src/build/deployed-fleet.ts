@@ -78,6 +78,7 @@ export const DEPLOYED_FLEET: readonly FleetEntry[] = [
   { slug: 'manage-api-keys', sdk: true },
   { slug: 'operator-audit-log', sdk: true },
   { slug: 'operator-sensor-coverage', sdk: true },
+  { slug: 'operator-external-feed-coverage', sdk: true },
 
   // --- NON-SDK surface (exempt) ---
   { slug: 'admin-login', sdk: false, exemptReason: 'operator-login' },
@@ -85,6 +86,10 @@ export const DEPLOYED_FLEET: readonly FleetEntry[] = [
   // X-Internal-Token auth for the platform / sim / edge-appliance push path —
   // no consumer wire contract, so it's not an SDK method.
   { slug: 'ingest-occupancy', sdk: false, exemptReason: 'cron-internal-token' },
+  // ingest-external-signal + weather-refresh: cluster #84 Tier-2 feed ingestion,
+  // X-Internal-Token (platform/partner/edge/cron push paths) — no SDK surface.
+  { slug: 'ingest-external-signal', sdk: false, exemptReason: 'cron-internal-token' },
+  { slug: 'weather-refresh', sdk: false, exemptReason: 'cron-internal-token' },
   { slug: 'refresh-demo-data', sdk: false, exemptReason: 'demo-util' },
   { slug: 'check-wait-time-notifications', sdk: false, exemptReason: 'cron-internal-token' },
   { slug: 'check-proximity-notifications', sdk: false, exemptReason: 'cron-internal-token' },

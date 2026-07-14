@@ -3428,6 +3428,97 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /operator-external-feed-coverage:
+    post:
+      operationId: operatorExternalFeedCoverage
+      summary: POST operator-external-feed-coverage
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_org:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  coverage:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        feed_type:
+                          type: string
+                        venue_id:
+                          type:
+                            - string
+                            - "null"
+                        zone_id:
+                          type:
+                            - string
+                            - "null"
+                        active:
+                          type: boolean
+                        coverage_confidence:
+                          type:
+                            - number
+                            - "null"
+                        label:
+                          type:
+                            - string
+                            - "null"
+                        last_signal_at:
+                          type:
+                            - string
+                            - "null"
+                        is_stale:
+                          type: boolean
+                      required:
+                        - feed_type
+                        - venue_id
+                        - zone_id
+                        - active
+                        - coverage_confidence
+                        - label
+                        - last_signal_at
+                        - is_stale
+                  org_id:
+                    type: string
+                required:
+                  - coverage
+                  - org_id
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus
