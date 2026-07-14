@@ -4,6 +4,27 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 
 > **Versioning convention (cluster #42, 2026-05-27).** Going forward, version headers are written as `## vX.Y.Z` (or `## vX.Y.Z - <one-line summary>`) with no date stamp. Release dates live in git tags + npm package metadata. The earlier `## vX.Y.Z - Unreleased` → CI-stamps-on-tag pattern was retired (the stamping step in `.github/workflows/publish.yml` was removed at the same time). Historical sections written under the old convention — including the dated v0.2.0 header and the v0.2.1 / v0.2.2 / v0.2.3 sections still tagged `- Unreleased` — are preserved as-is. New version sections added below should use the simpler format.
 
+## v0.2.6 - enterprise operator surface + auth hardening
+
+### Added (operator server-to-server surface)
+
+- **New `client.operator` domain** for the enterprise server-to-server surface:
+  - `client.operator.manageApiKeys({ action })` — issue / rotate / revoke the org's own partner API keys (HMAC + operator JWT). `issue` and `rotate` return `{ key }` with the raw `api_key` exactly once; `revoke` returns `{ revoked }`. Wraps the `manage-api-keys` Edge Function.
+  - `client.operator.insights(partnerApiKey, { target_org?, limit? })` — the org's persona-packaged insights, authenticated by a per-partner API key (distinct from the consumer `apiKey`). A `target_org` that isn't the key's own org is rejected with `org_access_denied`. Wraps `operator-insights`.
+  - `client.operator.recommendations(partnerApiKey, { target_org?, limit? })` — the org's staffing recommendations, same partner-key auth. Wraps `operator-recommendations`.
+  - Backed by `src/schemas/operator.ts`; coverage in `tests/methods.test.ts`.
+
+### Added / Changed (auth hardening)
+
+- `client.auth.changePassword({ new_password })` — **new.** Change the authenticated user's password (HMAC + JWT; the user is the JWT `sub`). The session-JWT factor for logged-in users.
+- `client.auth.requestPasswordReset({ email })` — **new.** Begin the forgot-password flow; returns a uniform `{ message }` regardless of whether the account exists (no enumeration). A single-use reset token is delivered out-of-band when the account exists.
+- `client.auth.resetPassword({ token, new_password })` — **BREAKING.** Now takes a single-use `token` (from `requestPasswordReset`) instead of `{ email, new_password }`. The prior shape allowed any holder of the shared API key to set a new password for any account; the token flow closes that. Returns `{ success }`.
+
+### Added (integration tooling)
+
+- **OpenAPI now advertises a sandbox server** (development environment) alongside production, so integrators can test against non-production data.
+- **Fleet-drift gate** (`src/build/deployed-fleet.ts` + `tests/fleet-drift.test.ts`) — asserts a bijection between the SDK-exposed deployed EFs and the schema registry, catching a deployed-but-undocumented endpoint that the spec-vs-schemas gate can't see.
+
 ## v0.2.5 - consent + recommendations surface
 
 ### Added (consumer surface)

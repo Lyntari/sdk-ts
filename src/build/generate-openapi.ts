@@ -300,6 +300,10 @@ function build(): void {
         url: 'https://cylxaiizkxfpohcdgeui.supabase.co/functions/v1',
         description: 'Production',
       },
+      {
+        url: 'https://bqabxkymqrfyqnvucpfk.supabase.co/functions/v1',
+        description: 'Sandbox (development) — for integration testing against non-production data.',
+      },
     ],
     tags: [
       { name: 'auth', description: 'Authentication, signup, password reset, account lifecycle.' },

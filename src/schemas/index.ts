@@ -46,6 +46,7 @@ import * as Events from './events.js';
 import * as Consent from './consent.js';
 import * as Recommendations from './recommendations.js';
 import * as Dsr from './dsr.js';
+import * as Operator from './operator.js';
 
 // === Re-exports ===========================================================
 
@@ -60,6 +61,7 @@ export * from './events.js';
 export * from './consent.js';
 export * from './recommendations.js';
 export * from './dsr.js';
+export * from './operator.js';
 
 // === Registry types =======================================================
 
@@ -140,6 +142,24 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: false,
     requestSchema: Auth.ResetPasswordRequestSchema,
     responseSchema: Auth.ResetPasswordResponseSchema,
+  },
+  {
+    slug: 'request-password-reset',
+    method: 'POST',
+    path: path('request-password-reset'),
+    auth: 'hmac',
+    idempotent: false,
+    requestSchema: Auth.RequestPasswordResetRequestSchema,
+    responseSchema: Auth.RequestPasswordResetResponseSchema,
+  },
+  {
+    slug: 'change-password',
+    method: 'POST',
+    path: path('change-password'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Auth.ChangePasswordRequestSchema,
+    responseSchema: Auth.ChangePasswordResponseSchema,
   },
   {
     slug: 'delete-account',
@@ -379,6 +399,35 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     idempotent: true,
     requestSchema: Dsr.SubmitDsrRequestSchema,
     responseSchema: Dsr.SubmitDsrResponseSchema,
+  },
+
+  // --- operator S2S surface (3; cluster #89, §36.2) ----------------------
+  {
+    slug: 'operator-insights',
+    method: 'POST',
+    path: path('operator-insights'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorReadRequestSchema,
+    responseSchema: Operator.OperatorInsightsResponseSchema,
+  },
+  {
+    slug: 'operator-recommendations',
+    method: 'POST',
+    path: path('operator-recommendations'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorReadRequestSchema,
+    responseSchema: Operator.OperatorRecommendationsResponseSchema,
+  },
+  {
+    slug: 'manage-api-keys',
+    method: 'POST',
+    path: path('manage-api-keys'),
+    auth: 'hmac+jwt',
+    idempotent: false,
+    requestSchema: Operator.ManageApiKeyRequestSchema,
+    responseSchema: Operator.ManageApiKeyResponseSchema,
   },
 
   // --- reads (8) ---------------------------------------------------------

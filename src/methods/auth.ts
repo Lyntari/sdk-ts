@@ -33,6 +33,10 @@ import type {
   DeleteAccountResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  RequestPasswordResetRequest,
+  RequestPasswordResetResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
 } from '../schemas/index.js';
 import { postWithHMAC } from '../transport/post.js';
 import type { ClientConfig, ClientState } from './_shared.js';
@@ -69,11 +73,26 @@ export interface AuthMethods {
   logout(input: AuthLogoutRequest): Promise<AuthLogoutResponse>;
 
   /**
-   * `reset-password` — set a new password for the email. Server validates
-   * the email + delivery channel (out-of-band magic link in production;
-   * direct overwrite in dev environments).
+   * `request-password-reset` — begin the forgot-password flow for an email.
+   * Always returns the same `{message}` whether or not the account exists (no
+   * enumeration). If it exists, a single-use reset token is delivered
+   * out-of-band. Pair with `resetPassword` to complete.
+   */
+  requestPasswordReset(input: RequestPasswordResetRequest): Promise<RequestPasswordResetResponse>;
+
+  /**
+   * `reset-password` — complete a forgot-password flow with the single-use
+   * `token` from `requestPasswordReset` + the `new_password`. Returns
+   * `{success}`; raises on an invalid/expired/used token.
    */
   resetPassword(input: ResetPasswordRequest): Promise<ResetPasswordResponse>;
+
+  /**
+   * `change-password` — change the authenticated user's password (HMAC + JWT;
+   * the user is the JWT `sub`). `client.setAccessToken(token)` must be set.
+   * The session-JWT factor — a caller can only change their own password.
+   */
+  changePassword(input: ChangePasswordRequest): Promise<ChangePasswordResponse>;
 
   /**
    * `delete-account` — soft-delete the authenticated user (JWT-derived).
@@ -131,6 +150,16 @@ export function createAuthMethods(
         idempotencyKey: null,
       }),
 
+    requestPasswordReset: async (input) =>
+      postWithHMAC<RequestPasswordResetResponse>({
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        hmacSecret: config.hmacSecret,
+        slug: 'request-password-reset',
+        body: input,
+        idempotencyKey: null,
+      }),
+
     resetPassword: async (input) =>
       postWithHMAC<ResetPasswordResponse>({
         baseUrl: config.baseUrl,
@@ -138,6 +167,17 @@ export function createAuthMethods(
         hmacSecret: config.hmacSecret,
         slug: 'reset-password',
         body: input,
+        idempotencyKey: null,
+      }),
+
+    changePassword: async (input) =>
+      postWithHMAC<ChangePasswordResponse>({
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        hmacSecret: config.hmacSecret,
+        slug: 'change-password',
+        body: input,
+        ...jwtCallOpts(state, 'change-password'),
         idempotencyKey: null,
       }),
 

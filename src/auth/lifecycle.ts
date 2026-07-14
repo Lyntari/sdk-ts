@@ -292,6 +292,10 @@ export class AuthLifecycle {
         return this.rawAuth.resetPassword(input);
       },
 
+      requestPasswordReset: (input) => this.rawAuth.requestPasswordReset(input),
+
+      changePassword: (input) => this.rawAuth.changePassword(input),
+
       deleteAccount: async (input?: DeleteAccountRequest): Promise<DeleteAccountResponse> => {
         const result = await this.rawAuth.deleteAccount(input);
         await this.clear();

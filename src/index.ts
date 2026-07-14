@@ -56,6 +56,7 @@ import type {
 import { createAuthMethods, type AuthMethods } from './methods/auth.js';
 import { createConsentMethods, type ConsentMethods } from './methods/consent.js';
 import { createPrivacyMethods, type PrivacyMethods } from './methods/privacy.js';
+import { createOperatorMethods, type OperatorMethods } from './methods/operator.js';
 import { createEventsMethods, type EventsMethods } from './methods/events.js';
 import { createInsightsMethods, type InsightsMethods } from './methods/insights.js';
 import { createLocationMethods, type LocationMethods } from './methods/location.js';
@@ -164,6 +165,8 @@ export interface LyntariClient {
   readonly recommendations: RecommendationsMethods;
   /** Privacy methods: submit a data-subject request (access / deletion / portability). */
   readonly privacy: PrivacyMethods;
+  /** Operator server-to-server methods: manageApiKeys + insights + recommendations (partner API key). */
+  readonly operator: OperatorMethods;
   /** OneSignal subscription save orchestration. `start` / `stop` are `undefined` in caller-managed mode (no auth lifecycle). */
   readonly pushSubscriptions: Partial<PushSubscriptionsSurface>;
 
@@ -263,6 +266,7 @@ export function createLyntariClient(config: CreateClientConfig): LyntariClient {
     consent: createConsentMethods(frozenConfig, state),
     recommendations: createRecommendationsMethods(frozenConfig, state),
     privacy: createPrivacyMethods(frozenConfig, state),
+    operator: createOperatorMethods(frozenConfig, state),
     pushSubscriptions: pushSubscriptionsSurface,
     setAccessToken: (token) => {
       state.accessToken = token;
@@ -284,6 +288,7 @@ export type { ReadsMethods } from './methods/reads.js';
 export type { ConsentMethods } from './methods/consent.js';
 export type { RecommendationsMethods } from './methods/recommendations.js';
 export type { PrivacyMethods } from './methods/privacy.js';
+export type { OperatorMethods } from './methods/operator.js';
 
 // Auth lifecycle + storage surface
 export type { TokenStorage } from './storage/types.js';
