@@ -457,6 +457,35 @@ export const efRegistry: readonly EfRegistryEntry[] = [
     responseSchema: Operator.OperatorExternalFeedCoverageResponseSchema,
   },
 
+  // --- venue onboarding + ingestion (3; cluster #85, §4.12) --------------
+  {
+    slug: 'operator-what-if',
+    method: 'POST',
+    path: path('operator-what-if'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorWhatIfRequestSchema,
+    responseSchema: Operator.OperatorWhatIfResponseSchema,
+  },
+  {
+    slug: 'pos-connect',
+    method: 'POST',
+    path: path('pos-connect'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.PosConnectRequestSchema,
+    responseSchema: Operator.PosConnectResponseSchema,
+  },
+  {
+    slug: 'operator-onboard',
+    method: 'POST',
+    path: path('operator-onboard'),
+    auth: 'api-key-post',
+    idempotent: false,
+    requestSchema: Operator.OperatorOnboardRequestSchema,
+    responseSchema: Operator.OperatorOnboardResponseSchema,
+  },
+
   // --- reads (8) ---------------------------------------------------------
   {
     slug: 'congestion-status',

@@ -1061,6 +1061,132 @@ describe('operator.externalFeedCoverage (partner API-key mode; cluster #84)', ()
   });
 });
 
+describe('operator.whatIf (partner API-key mode; cluster #85)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs the scenario to /operator-what-if with the partner key and returns the projection', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: {
+        basis: 'deterministic_surrogate',
+        venue_id: 'v1',
+        scenario: { attendance: 45000, closed_zones: 2, event_phase: 'egress', service_rate_multiplier: 1 },
+        projection: { projected_wait_minutes: 23.4, projected_congestion_tier: 4, projected_staffing_need: 13, load_factor: 2.25 },
+      } }),
+    );
+
+    const result = await client.operator.whatIf('lyn_partnerkey', {
+      venue_id: 'a2f9c1e0-0000-4000-8000-000000000001',
+      scenario: { attendance: 45000, closed_zones: 2, event_phase: 'egress' },
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-what-if`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody._auth.signature).toBeUndefined(); // no HMAC on the operator path
+    expect(sentBody.scenario.attendance).toBe(45000);
+    expect(result.basis).toBe('deterministic_surrogate');
+    expect(result.projection.projected_congestion_tier).toBe(4);
+  });
+});
+
+describe('operator.connectPos (partner API-key mode; cluster #85)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs to /pos-connect and returns the aggregator connect-widget URL', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: {
+        connect_url: 'https://connect.omnivore.example/widget/abc123',
+        aggregator: 'omnivore', status: 'pending', connection_row_id: 'conn-1',
+      } }),
+    );
+
+    const result = await client.operator.connectPos('lyn_partnerkey', {
+      venue_id: 'a2f9c1e0-0000-4000-8000-000000000001', aggregator: 'omnivore',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/pos-connect`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody.aggregator).toBe('omnivore');
+    expect(result.connect_url).toContain('omnivore');
+    expect(result.status).toBe('pending');
+  });
+});
+
+describe('operator.onboard convenience wrappers (partner API-key mode; cluster #85)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+  const VENUE = 'a2f9c1e0-0000-4000-8000-000000000001';
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('venueConfig() dispatches action=venue_config to /operator-onboard', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { action: 'venue_config', result: { onboarding_status: 'configured' } } }),
+    );
+    const result = await client.operator.venueConfig('lyn_partnerkey', { venue_id: VENUE });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-onboard`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.action).toBe('venue_config');
+    expect(sentBody.venue_id).toBe(VENUE);
+    expect(result.action).toBe('venue_config');
+  });
+
+  it('registerSensorSource() dispatches action=register_sensor_source', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { action: 'register_sensor_source', result: { sensor_source_id: 's1' } } }),
+    );
+    await client.operator.registerSensorSource('lyn_partnerkey', { venue_id: VENUE, source_type: 'wifi_probe', label: 'NG WiFi' });
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('register_sensor_source');
+    expect(sentBody.source_type).toBe('wifi_probe');
+  });
+
+  it('registerExternalSource() dispatches action=register_external_source', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { action: 'register_external_source', result: { external_source_id: 'e1' } } }),
+    );
+    await client.operator.registerExternalSource('lyn_partnerkey', { venue_id: VENUE, feed_type: 'drone' });
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('register_external_source');
+    expect(sentBody.feed_type).toBe('drone');
+  });
+
+  it('submitIngestMapping() dispatches action=submit_mapping', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { action: 'submit_mapping', result: { mapping_id: 'm1' } } }),
+    );
+    await client.operator.submitIngestMapping('lyn_partnerkey', {
+      venue_id: VENUE, source_format: 'historical_ticket_scan_csv', stream: 'scans',
+      column_map: { zone: 'section' },
+    });
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]![1]?.body as string);
+    expect(sentBody.action).toBe('submit_mapping');
+    expect(sentBody.source_format).toBe('historical_ticket_scan_csv');
+  });
+});
+
 describe('operator.manageApiKeys (hmac+jwt)', () => {
   let fetchMock: MockedFunction<typeof fetch>;
   let client: LyntariClient;

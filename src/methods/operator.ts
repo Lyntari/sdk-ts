@@ -1,5 +1,6 @@
 /**
- * Operator server-to-server SDK methods — 3 endpoints (cluster #89, §36.2).
+ * Operator server-to-server SDK methods (cluster #89, §36.2; extended by
+ * clusters #83/#84 coverage reads and #85 venue onboarding + ingestion).
  *
  *   - `manageApiKeys` → `manage-api-keys` EF (HMAC + operator JWT) — issue /
  *     rotate / revoke the org's own partner API keys. The raw key is returned
@@ -26,6 +27,12 @@ import type {
   OperatorSensorCoverageResponse,
   OperatorExternalFeedCoverageRequest,
   OperatorExternalFeedCoverageResponse,
+  OperatorWhatIfRequest,
+  OperatorWhatIfResponse,
+  PosConnectRequest,
+  PosConnectResponse,
+  OperatorOnboardRequest,
+  OperatorOnboardResponse,
 } from '../schemas/index.js';
 import { postWithHMAC } from '../transport/post.js';
 import { postWithApiKey } from '../transport/postApiKey.js';
@@ -78,6 +85,64 @@ export interface OperatorMethods {
    * (first arg); a `target_org` that isn't the key's own org is rejected.
    */
   externalFeedCoverage(partnerApiKey: string, input?: OperatorExternalFeedCoverageRequest): Promise<OperatorExternalFeedCoverageResponse>;
+
+  /**
+   * `operator-what-if` — a bounded, guarded scenario projection for a venue.
+   * The caller supplies a small parameter set (`attendance`, `closed_zones`,
+   * `event_phase`, `service_rate_multiplier`) and gets back projected wait /
+   * congestion tier / staffing need. NOT a live simulation — the server answers
+   * from a deterministic surrogate, and out-of-range parameters are rejected.
+   * Authenticated by a partner API key (first arg); a `target_org` that isn't
+   * the key's own org is rejected. Rate-limited server-side.
+   */
+  whatIf(partnerApiKey: string, input: OperatorWhatIfRequest): Promise<OperatorWhatIfResponse>;
+
+  /**
+   * `pos-connect` — begin POS onboarding for a venue. Returns the aggregator's
+   * hosted connect-widget (iFrame) URL; the venue admin opens it and authorizes
+   * their POS inside the aggregator (which owns the OAuth + raw credentials).
+   * Normalized order events then flow to Lyntari's ingest. Authenticated by a
+   * partner API key (first arg); a `target_org` that isn't the key's own org is
+   * rejected.
+   */
+  connectPos(partnerApiKey: string, input: PosConnectRequest): Promise<PosConnectResponse>;
+
+  /**
+   * `operator-onboard` — per-venue onboarding config CRUD (action-dispatched):
+   * `venue_config` reads the venue's current onboarding config; the register /
+   * submit actions configure sensor sources, external feeds, and declarative
+   * ingest mappings. Provisioning a NEW org is deliberately not here (that is an
+   * internal/admin operation). Authenticated by a partner API key (first arg);
+   * a `target_org` that isn't the key's own org is rejected.
+   *
+   * The convenience wrappers below (`venueConfig`, `registerSensorSource`,
+   * `registerExternalSource`, `submitIngestMapping`) call this with the right
+   * `action`.
+   */
+  onboard(partnerApiKey: string, input: OperatorOnboardRequest): Promise<OperatorOnboardResponse>;
+
+  /** `operator-onboard` (`venue_config`) — read a venue's onboarding config (sensors, feeds, POS connection, mappings, status). */
+  venueConfig(partnerApiKey: string, input: { venue_id: string; target_org?: string }): Promise<OperatorOnboardResponse>;
+
+  /** `operator-onboard` (`register_sensor_source`) — register a whole-crowd sensor source for a venue. */
+  registerSensorSource(
+    partnerApiKey: string,
+    input: Extract<OperatorOnboardRequest, { action: 'register_sensor_source' }> extends infer T
+      ? Omit<T & { action: 'register_sensor_source' }, 'action'>
+      : never,
+  ): Promise<OperatorOnboardResponse>;
+
+  /** `operator-onboard` (`register_external_source`) — register a Tier-2 external feed for a venue. */
+  registerExternalSource(
+    partnerApiKey: string,
+    input: Omit<Extract<OperatorOnboardRequest, { action: 'register_external_source' }>, 'action'>,
+  ): Promise<OperatorOnboardResponse>;
+
+  /** `operator-onboard` (`submit_mapping`) — submit a declarative raw-export → canonical-stream ingest mapping. */
+  submitIngestMapping(
+    partnerApiKey: string,
+    input: Omit<Extract<OperatorOnboardRequest, { action: 'submit_mapping' }>, 'action'>,
+  ): Promise<OperatorOnboardResponse>;
 }
 
 export function createOperatorMethods(
@@ -134,6 +199,62 @@ export function createOperatorMethods(
         slug: 'operator-external-feed-coverage',
         apiKey: partnerApiKey,
         body: input,
+      }),
+
+    whatIf: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorWhatIfResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-what-if',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    connectPos: async (partnerApiKey, input) =>
+      postWithApiKey<PosConnectResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'pos-connect',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    onboard: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorOnboardResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-onboard',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    venueConfig: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorOnboardResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-onboard',
+        apiKey: partnerApiKey,
+        body: { action: 'venue_config', ...input },
+      }),
+
+    registerSensorSource: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorOnboardResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-onboard',
+        apiKey: partnerApiKey,
+        body: { action: 'register_sensor_source', ...input },
+      }),
+
+    registerExternalSource: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorOnboardResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-onboard',
+        apiKey: partnerApiKey,
+        body: { action: 'register_external_source', ...input },
+      }),
+
+    submitIngestMapping: async (partnerApiKey, input) =>
+      postWithApiKey<OperatorOnboardResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-onboard',
+        apiKey: partnerApiKey,
+        body: { action: 'submit_mapping', ...input },
       }),
   };
 }

@@ -3519,6 +3519,342 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /operator-what-if:
+    post:
+      operationId: operatorWhatIf
+      summary: POST operator-what-if
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_org:
+                  type: string
+                  format: uuid
+                venue_id:
+                  type: string
+                  format: uuid
+                scenario:
+                  type: object
+                  properties:
+                    attendance:
+                      type: integer
+                      minimum: 0
+                    closed_zones:
+                      type: integer
+                      minimum: 0
+                    event_phase:
+                      type: string
+                      enum:
+                        - pregame
+                        - ingress
+                        - active
+                        - halftime
+                        - egress
+                        - postgame
+                    service_rate_multiplier:
+                      type: number
+                      exclusiveMinimum: 0
+                  required:
+                    - attendance
+              required:
+                - venue_id
+                - scenario
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  basis:
+                    type: string
+                  venue_id:
+                    type: string
+                  scenario:
+                    type: object
+                    properties:
+                      attendance:
+                        type: number
+                      closed_zones:
+                        type: number
+                      event_phase:
+                        type: string
+                      service_rate_multiplier:
+                        type: number
+                    required:
+                      - attendance
+                      - closed_zones
+                      - event_phase
+                      - service_rate_multiplier
+                  projection:
+                    type: object
+                    properties:
+                      projected_wait_minutes:
+                        type: number
+                      projected_congestion_tier:
+                        type: integer
+                      projected_staffing_need:
+                        type: integer
+                      load_factor:
+                        type: number
+                    required:
+                      - projected_wait_minutes
+                      - projected_congestion_tier
+                      - projected_staffing_need
+                      - load_factor
+                required:
+                  - basis
+                  - venue_id
+                  - scenario
+                  - projection
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /pos-connect:
+    post:
+      operationId: posConnect
+      summary: POST pos-connect
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_org:
+                  type: string
+                  format: uuid
+                venue_id:
+                  type: string
+                  format: uuid
+                aggregator:
+                  type: string
+                  enum:
+                    - omnivore
+                    - olo
+                    - rutter
+              required:
+                - venue_id
+                - aggregator
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connect_url:
+                    type: string
+                  aggregator:
+                    type: string
+                  status:
+                    type: string
+                  connection_row_id:
+                    type: string
+                required:
+                  - connect_url
+                  - aggregator
+                  - status
+                  - connection_row_id
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /operator-onboard:
+    post:
+      operationId: operatorOnboard
+      summary: POST operator-onboard
+      description: "Auth: `api-key-post`."
+      tags:
+        - misc
+      security:
+        - ApiKeyBody: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - venue_config
+                    target_org:
+                      type: string
+                      format: uuid
+                    venue_id:
+                      type: string
+                      format: uuid
+                  required:
+                    - action
+                    - venue_id
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - register_sensor_source
+                    target_org:
+                      type: string
+                      format: uuid
+                    venue_id:
+                      type: string
+                      format: uuid
+                    source_type:
+                      type: string
+                      enum:
+                        - ticket_scan
+                        - turnstile
+                        - access_control
+                        - wifi_probe
+                    zone_id:
+                      type: string
+                      format: uuid
+                    coverage_confidence:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    label:
+                      type: string
+                  required:
+                    - action
+                    - venue_id
+                    - source_type
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - register_external_source
+                    target_org:
+                      type: string
+                      format: uuid
+                    venue_id:
+                      type: string
+                      format: uuid
+                    feed_type:
+                      type: string
+                    zone_id:
+                      type: string
+                      format: uuid
+                    coverage_confidence:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    label:
+                      type: string
+                  required:
+                    - action
+                    - venue_id
+                    - feed_type
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum:
+                        - submit_mapping
+                    target_org:
+                      type: string
+                      format: uuid
+                    venue_id:
+                      type: string
+                      format: uuid
+                    source_format:
+                      type: string
+                    stream:
+                      type: string
+                    column_map:
+                      type: object
+                      additionalProperties: {}
+                    transforms:
+                      type: object
+                      additionalProperties: {}
+                    label:
+                      type: string
+                  required:
+                    - action
+                    - source_format
+                    - stream
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  action:
+                    type: string
+                  result: {}
+                required:
+                  - action
+        "400":
+          description: "Validation failed — body did not match the request schema. `error.code` is
+            `validation_failed` with `details: { field, issues }`."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Authentication failed — bad signature, expired/invalid JWT, missing API key, etc.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /congestion-status:
     post:
       operationId: congestionStatus
