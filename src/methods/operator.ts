@@ -22,6 +22,8 @@ import type {
   OperatorRecommendationsResponse,
   OperatorAuditLogRequest,
   OperatorAuditLogResponse,
+  OperatorSensorCoverageRequest,
+  OperatorSensorCoverageResponse,
 } from '../schemas/index.js';
 import { postWithHMAC } from '../transport/post.js';
 import { postWithApiKey } from '../transport/postApiKey.js';
@@ -56,6 +58,15 @@ export interface OperatorMethods {
    * arg); a `target_org` that isn't the key's own org is rejected.
    */
   auditLog(partnerApiKey: string, input?: OperatorAuditLogRequest): Promise<OperatorAuditLogResponse>;
+
+  /**
+   * `operator-sensor-coverage` — the org's whole-crowd sensor coverage: which
+   * sources (ticket-scan / turnstile / access-control / WiFi-probe / app-signal)
+   * cover which zones, their coverage confidence, and each source's freshness
+   * (`last_reading_at` + `is_stale`). Authenticated by a partner API key (first
+   * arg); a `target_org` that isn't the key's own org is rejected.
+   */
+  sensorCoverage(partnerApiKey: string, input?: OperatorSensorCoverageRequest): Promise<OperatorSensorCoverageResponse>;
 }
 
 export function createOperatorMethods(
@@ -94,6 +105,14 @@ export function createOperatorMethods(
       postWithApiKey<OperatorAuditLogResponse>({
         baseUrl: config.baseUrl,
         slug: 'operator-audit-log',
+        apiKey: partnerApiKey,
+        body: input,
+      }),
+
+    sensorCoverage: async (partnerApiKey, input = {}) =>
+      postWithApiKey<OperatorSensorCoverageResponse>({
+        baseUrl: config.baseUrl,
+        slug: 'operator-sensor-coverage',
         apiKey: partnerApiKey,
         body: input,
       }),

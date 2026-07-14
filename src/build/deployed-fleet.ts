@@ -77,9 +77,14 @@ export const DEPLOYED_FLEET: readonly FleetEntry[] = [
   { slug: 'operator-recommendations', sdk: true },
   { slug: 'manage-api-keys', sdk: true },
   { slug: 'operator-audit-log', sdk: true },
+  { slug: 'operator-sensor-coverage', sdk: true },
 
   // --- NON-SDK surface (exempt) ---
   { slug: 'admin-login', sdk: false, exemptReason: 'operator-login' },
+  // ingest-occupancy: aggregated whole-crowd occupancy ingestion (cluster #83),
+  // X-Internal-Token auth for the platform / sim / edge-appliance push path —
+  // no consumer wire contract, so it's not an SDK method.
+  { slug: 'ingest-occupancy', sdk: false, exemptReason: 'cron-internal-token' },
   { slug: 'refresh-demo-data', sdk: false, exemptReason: 'demo-util' },
   { slug: 'check-wait-time-notifications', sdk: false, exemptReason: 'cron-internal-token' },
   { slug: 'check-proximity-notifications', sdk: false, exemptReason: 'cron-internal-token' },
