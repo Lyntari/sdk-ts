@@ -79,9 +79,19 @@ export const DEPLOYED_FLEET: readonly FleetEntry[] = [
   { slug: 'operator-audit-log', sdk: true },
   { slug: 'operator-sensor-coverage', sdk: true },
   { slug: 'operator-external-feed-coverage', sdk: true },
+  // --- venue onboarding + ingestion (SDK, cluster #85) ---
+  { slug: 'operator-what-if', sdk: true },
+  { slug: 'pos-connect', sdk: true },
+  { slug: 'operator-onboard', sdk: true },
 
   // --- NON-SDK surface (exempt) ---
   { slug: 'admin-login', sdk: false, exemptReason: 'operator-login' },
+  // venue-provision: internal/admin org+venue+admin provisioning (cluster #85),
+  // X-Internal-Token — creates a NEW org, so it can't be a partner-key surface.
+  { slug: 'venue-provision', sdk: false, exemptReason: 'cron-internal-token' },
+  // pos-webhook: aggregator → normalized-order ingress (cluster #85),
+  // X-Internal-Token from the aggregator side — no consumer wire contract.
+  { slug: 'pos-webhook', sdk: false, exemptReason: 'cron-internal-token' },
   // ingest-occupancy: aggregated whole-crowd occupancy ingestion (cluster #83),
   // X-Internal-Token auth for the platform / sim / edge-appliance push path —
   // no consumer wire contract, so it's not an SDK method.
