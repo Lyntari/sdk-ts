@@ -76,6 +76,7 @@ export const DEPLOYED_FLEET: readonly FleetEntry[] = [
   { slug: 'operator-insights', sdk: true },
   { slug: 'operator-recommendations', sdk: true },
   { slug: 'manage-api-keys', sdk: true },
+  { slug: 'operator-audit-log', sdk: true },
 
   // --- NON-SDK surface (exempt) ---
   { slug: 'admin-login', sdk: false, exemptReason: 'operator-login' },

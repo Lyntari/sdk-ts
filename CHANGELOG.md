@@ -4,6 +4,12 @@ All notable changes to `@lyntari/sdk` are documented in this file. The format is
 
 > **Versioning convention (cluster #42, 2026-05-27).** Going forward, version headers are written as `## vX.Y.Z` (or `## vX.Y.Z - <one-line summary>`) with no date stamp. Release dates live in git tags + npm package metadata. The earlier `## vX.Y.Z - Unreleased` → CI-stamps-on-tag pattern was retired (the stamping step in `.github/workflows/publish.yml` was removed at the same time). Historical sections written under the old convention — including the dated v0.2.0 header and the v0.2.1 / v0.2.2 / v0.2.3 sections still tagged `- Unreleased` — are preserved as-is. New version sections added below should use the simpler format.
 
+## v0.2.7 - operator audit-log surface
+
+### Added (operator server-to-server surface)
+
+- `client.operator.auditLog(partnerApiKey, { target_org?, category?, from?, to?, limit? })` — read the org's immutable, tamper-evident security-event audit log (SOC 2 evidence): `auth`, `access`, `config`, `dsr`, `api_key`, and `isolation` events, each org-attributed. Authenticated by a per-partner API key (first arg, same auth mode as `operator.insights`/`recommendations`); a `target_org` that isn't the key's own org is rejected with `org_access_denied`. `category` filters to one event class. Each event carries `occurred_at`, `actor_type`, `actor_id`, `event_type`, `target_type`/`target_id`, `outcome`, and an opaque `detail`. Wraps the `operator-audit-log` Edge Function. Backed by `OperatorAuditLog*` schemas in `src/schemas/operator.ts`; happy-path + category-filter coverage in `tests/methods.test.ts`; `operator-audit-log` added to the deployed-fleet manifest.
+
 ## v0.2.6 - enterprise operator surface + auth hardening
 
 ### Added (operator server-to-server surface)

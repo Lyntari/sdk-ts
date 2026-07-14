@@ -969,6 +969,34 @@ describe('operator.insights (partner API-key mode)', () => {
   });
 });
 
+describe('operator.auditLog (partner API-key mode; cluster #80)', () => {
+  let fetchMock: MockedFunction<typeof fetch>;
+  let client: LyntariClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn() as MockedFunction<typeof fetch>;
+    globalThis.fetch = fetchMock;
+    client = createLyntariClient({ baseUrl: BASE_URL, apiKey: API_KEY, hmacSecret: HMAC_SECRET });
+  });
+
+  it('POSTs a category-filtered read to /operator-audit-log with the partner key', async () => {
+    fetchMock.mockResolvedValueOnce(
+      mockResponse({ ok: true, status: 200, body: { events: [{ id: 8, occurred_at: '2026-07-14T00:00:00.000Z', actor_type: 'partner_key', actor_id: 'key-1', event_category: 'isolation', event_type: 'org_access_denied', target_type: 'audit', target_id: 'org-b', outcome: 'denied', request_id: 'req_1', detail: { surface: 'operator-audit-log' } }], org_id: 'org-a' } }),
+    );
+
+    const result = await client.operator.auditLog('lyn_partnerkey', { category: 'isolation', limit: 50 });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(`${BASE_URL}/operator-audit-log`);
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody._auth.apiKey).toBe('lyn_partnerkey');
+    expect(sentBody.category).toBe('isolation');
+    expect(result.events[0]!.event_type).toBe('org_access_denied');
+    expect(result.events[0]!.outcome).toBe('denied');
+    expect(result.org_id).toBe('org-a');
+  });
+});
+
 describe('operator.manageApiKeys (hmac+jwt)', () => {
   let fetchMock: MockedFunction<typeof fetch>;
   let client: LyntariClient;
